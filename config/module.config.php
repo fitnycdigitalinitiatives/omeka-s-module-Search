@@ -5,11 +5,13 @@ return [
     'controllers' => [
         'invokables' => [
             'Search\Controller\Index' => Controller\IndexController::class,
+            'Search\Controller\SavedQueries' => Controller\SavedQueriesController::class,
             'Search\Controller\Admin\Index' => Controller\Admin\IndexController::class,
         ],
         'factories' => [
             'Search\Controller\Admin\SearchIndex' => Service\Controller\Admin\SearchIndexControllerFactory::class,
             'Search\Controller\Admin\SearchPage' => Service\Controller\Admin\SearchPageControllerFactory::class,
+
         ],
     ],
     'controller_plugins' => [
@@ -29,6 +31,7 @@ return [
         'invokables' => [
             'search_indexes' => Api\Adapter\SearchIndexAdapter::class,
             'search_pages' => Api\Adapter\SearchPageAdapter::class,
+            'saved_queries' => Api\Adapter\SavedQueriesAdapter::class,
         ],
     ],
     'form_elements' => [
@@ -61,8 +64,39 @@ return [
             'search-page' => Site\Navigation\Link\SearchPage::class,
         ],
     ],
+    'block_layouts' => [
+        'invokables' => [
+            'saved-queries' => Site\BlockLayout\SavedQueries::class,
+        ],
+    ],
     'router' => [
         'routes' => [
+            'site' => [
+                'child_routes' => [
+                    'save-query' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/save-query',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller',
+                                'controller' => 'SavedQueries',
+                                'action' => 'save',
+                            ]
+                        ]
+                    ],
+                    'delete-query' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/delete-query',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller',
+                                'controller' => 'SavedQueries',
+                                'action' => 'delete',
+                            ]
+                        ]
+                    ]
+                ]
+            ],
             'admin' => [
                 'child_routes' => [
                     'search' => [
@@ -152,9 +186,11 @@ return [
         'factories' => [
             'facetLink' => Service\ViewHelper\FacetLinkFactory::class,
             'facetLabel' => Service\ViewHelper\FacetLabelFactory::class,
+
         ],
         'invokables' => [
             'searchForm' => View\Helper\SearchForm::class,
+            'savedQueries' => View\Helper\SavedQueries::class,
         ],
     ],
     'search_form_adapters' => [
@@ -172,4 +208,5 @@ return [
             ],
         ],
     ],
+    
 ];

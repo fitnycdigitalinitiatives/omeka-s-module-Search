@@ -35,7 +35,19 @@
     $this->headScript()->appendFile($this->assetUrl('js/search.js', 'Search'));
 ?>
 
-<?php echo $this->pageTitle($this->translate('Search'), 2); ?>
+<?php echo $this->pageTitle($this->translate('Search'), 2); ?> 
+
+<?php if(isset($response) && $saveQueriesParam) : ?>
+    <form method="post" action="<?php echo $this->url('site/save-query', [], true)  ?>">
+        <input id="saveSearch" type="submit" value="<?php echo $this->translate('Save this query') ?>">
+        <?php echo $this->translate('as') ?>
+        <input id="save_site_id" type="hidden" name="site_id" value="<?php echo $siteId ?>">
+        <input id="save_search_page_id" type="hidden" name="search_page_id" value="<?php echo $searchPageId ?>">
+        <input id="save_newquerystring" type="hidden" name="query_string" value='<?php echo $queryParams ?>'>
+        <input id="save_newquerytitle" type="text" name="query_title" size="20" title="New query Title" value="">
+ 
+    </form>
+<?php endif; ?>
 
 <?php echo $this->messages(); ?>
 

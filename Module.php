@@ -34,6 +34,7 @@ use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\Mvc\MvcEvent;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Omeka\Module\AbstractModule;
+use Composer\Semver\Comparator;
 
 class Module extends AbstractModule
 {
@@ -106,6 +107,21 @@ class Module extends AbstractModule
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         ';
         $connection->exec($sql);
+        $sql = '
+            CREATE TABLE IF NOT EXISTS `saved_queries` (
+                `id` int(11) unsigned  NOT NULL AUTO_INCREMENT,
+                `user_id` int(11) NOT NULL, 
+                `site_id` int(11) NOT NULL, 
+                `search_page_id` int(11) unsigned NOT NULL, 
+                `query_string` text NOT NULL, 
+                `query_title` varchar(255) NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+                FOREIGN KEY (`site_id`) REFERENCES `site` (`id`),
+                FOREIGN KEY (`search_page_id`) REFERENCES `search_page` (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        ';
+        $connection->exec($sql);
     }
 
     public function upgrade($oldVersion, $newVersion,
@@ -119,11 +135,31 @@ class Module extends AbstractModule
                 CHANGE `form` `form_adapter` varchar(255) NOT NULL
             ');
         }
+
+        if (Comparator::lessThan($oldVersion, '0.10.0', '<')) {
+            $sql = '
+            CREATE TABLE IF NOT EXISTS `saved_queries` (
+                `id` int(11) unsigned  NOT NULL AUTO_INCREMENT,
+                `user_id` int(11) NOT NULL, 
+                `site_id` int(11) NOT NULL, 
+                `search_page_id` int(11) unsigned NOT NULL, 
+                `query_string` text NOT NULL, 
+                `query_title` varchar(255) NOT NULL,
+                PRIMARY KEY(`id`),
+                FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+                FOREIGN KEY (`site_id`) REFERENCES `site` (`id`),
+                FOREIGN KEY (`search_page_id`) REFERENCES `search_page` (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+            ';
+            $connection->exec($sql);
+        }
     }
 
     public function uninstall(ServiceLocatorInterface $serviceLocator)
     {
         $connection = $serviceLocator->get('Omeka\Connection');
+        $sql = 'DROP TABLE IF EXISTS `saved_queries`';
+        $connection->exec($sql);
         $sql = 'DROP TABLE IF EXISTS `search_page`';
         $connection->exec($sql);
         $sql = 'DROP TABLE IF EXISTS `search_index`';

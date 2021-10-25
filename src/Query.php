@@ -45,6 +45,7 @@ class Query
     protected $resources = [];
     protected $site;
     protected $isPublic;
+    protected $saveQueries=false;
 
     public function setQuery($query)
     {
@@ -94,6 +95,16 @@ class Query
     public function getIsPublic(): ?bool
     {
         return $this->isPublic;
+    }
+
+    public function setSaveQueries(bool $saveQueries)
+    {
+        $this->saveQueries = $saveQueries;
+    }
+
+    public function getSaveQueries()
+    {
+        return $this->saveQueries;
     }
 
     public function addFacetFilter($name, $value)

@@ -101,6 +101,10 @@ class IndexController extends AbstractActionController
             $query->setFacetLimit($settings['facet_limit']);
         }
 
+        if (isset($settings['save_queries'])) {
+            $query->setSaveQueries($settings['save_queries']);
+        }
+
         if (isset($params['limit'])) {
             foreach ($params['limit'] as $name => $values) {
                 foreach ($values as $value) {
@@ -133,9 +137,15 @@ class IndexController extends AbstractActionController
             $this->messenger()->addError('Query error: ' . $e->getMessage());
             return $view;
         }
-
+        
         $facets = $response->getFacetCounts();
         $facets = $this->sortByWeight($facets, 'facets');
+
+        $saveQueriesParam = $query->getSaveQueries();
+
+        $queryParams = json_encode($this->params()->fromQuery());
+        $searchPageId = $this->page->id();
+        $siteId = $site->id();
 
         $totalResults = array_map(function ($resource) use ($response) {
             return $response->getResourceTotalResults($resource);
@@ -145,7 +155,14 @@ class IndexController extends AbstractActionController
         $view->setVariable('site', $site);
         $view->setVariable('response', $response);
         $view->setVariable('facets', $facets);
+        $view->setVariable('saveQueriesParam', $saveQueriesParam);
         $view->setVariable('sortOptions', $sortOptions);
+        $view->setVariable('queryParams', $queryParams);
+        $view->setVariable('searchPageId', $searchPageId);
+        $view->setVariable('siteId', $siteId);
+
+
+
 
         return $view;
     }
