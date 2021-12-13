@@ -40,7 +40,7 @@
 <?php if(isset($response) && $saveQueriesParam) : ?>
     <form method="post" action="<?php echo $this->url('site/save-query', [], true)  ?>">
         <input id="saveSearch" type="submit" value="<?php echo $this->translate('Save this query') ?>">
-        <?php echo $this->translate('as') ?>
+        <?php echo (':') ?>
         <input id="save_site_id" type="hidden" name="site_id" value="<?php echo $siteId ?>">
         <input id="save_search_page_id" type="hidden" name="search_page_id" value="<?php echo $searchPageId ?>">
         <input id="save_newquerystring" type="hidden" name="query_string" value='<?php echo $queryParams ?>'>
