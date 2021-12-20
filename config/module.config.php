@@ -63,6 +63,24 @@ return [
     ],
     'router' => [
         'routes' => [
+          'site' => [
+              'child_routes' => [
+                  'search' => [
+                      'type' => 'Segment',
+                      'options' => [
+                          'route' => '/search-:page-id',
+                          'constraints' => [
+                              'page-id' => '\d+',
+                          ],
+                          'defaults' => [
+                              '__NAMESPACE__' => 'Search\Controller',
+                              'controller' => 'Index',
+                              'action' => 'search',
+                          ],
+                      ],
+                  ],
+              ],
+          ],
             'admin' => [
                 'child_routes' => [
                     'search' => [

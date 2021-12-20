@@ -42,7 +42,7 @@ class IndexController extends AbstractActionController
 
     public function searchAction()
     {
-        $response = $this->api()->read('search_pages', $this->params('id'));
+        $response = $this->api()->read('search_pages', $this->params('page-id'));
         $this->page = $response->getContent();
         $index_id = $this->page->index()->id();
 
@@ -159,7 +159,7 @@ class IndexController extends AbstractActionController
     protected function sortByWeight($fields, $setting_name)
     {
         $settings = $this->page->settings();
-        uksort($fields, function ($a, $b) use ($settings,$setting_name) {
+        uksort($fields, function ($a, $b) use ($settings, $setting_name) {
             $aWeight = $settings[$setting_name][$a]['weight'];
             $bWeight = $settings[$setting_name][$b]['weight'];
             return $aWeight - $bWeight;

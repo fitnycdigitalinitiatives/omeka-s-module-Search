@@ -52,8 +52,6 @@ class Module extends AbstractModule
         $acl->allow(null, 'Search\Entity\SearchPage', 'read');
         $acl->allow(null, 'Search\Entity\SearchIndex', 'read');
         $acl->allow(null, 'Search\Controller\Index');
-
-        $this->addRoutes();
     }
 
     public function init(ModuleManager $moduleManager)
@@ -188,36 +186,6 @@ class Module extends AbstractModule
                     $indexer->indexResource($resource);
                 }
             }
-        }
-    }
-
-    protected function addRoutes()
-    {
-        $serviceLocator = $this->getServiceLocator();
-        $settings = $serviceLocator->get('Omeka\Settings');
-        $router = $serviceLocator->get('Router');
-        $api = $serviceLocator->get('Omeka\ApiManager');
-
-        if (!$router instanceof \Laminas\Router\Http\TreeRouteStack) {
-            return;
-        }
-
-        $pages = $api->search('search_pages')->getContent();
-        foreach ($pages as $page) {
-            $path = $page->path();
-            $router->addRoute('search-page-' . $page->id(), [
-                'type' => 'segment',
-                'options' => [
-                    'route' => '/s/:site-slug/' . $path,
-                    'defaults' => [
-                        '__NAMESPACE__' => 'Search\Controller',
-                        '__SITE__' => true,
-                        'controller' => 'Index',
-                        'action' => 'search',
-                        'id' => $page->id(),
-                    ],
-                ],
-            ]);
         }
     }
 }

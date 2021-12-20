@@ -82,7 +82,7 @@ class FacetLabel extends AbstractHelper
             $mvcEvent = $this->application->getMvcEvent();
             $routeMatch = $mvcEvent->getRouteMatch();
 
-            $response = $this->api->read('search_pages', $routeMatch->getParam('id'));
+            $response = $this->api->read('search_pages', $routeMatch->getParam('page-id'));
             $this->searchPage = $response->getContent();
         }
 
