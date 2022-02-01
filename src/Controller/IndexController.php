@@ -34,6 +34,9 @@ use Laminas\View\Model\ViewModel;
 use Omeka\Mvc\Exception\RuntimeException;
 use Omeka\Stdlib\Paginator;
 use Search\Querier\Exception\QuerierException;
+use SolrClient;
+use SolrClientException;
+use SolrQuery;
 
 class IndexController extends AbstractActionController
 {
@@ -148,6 +151,37 @@ class IndexController extends AbstractActionController
         $view->setVariable('sortOptions', $sortOptions);
 
         return $view;
+    }
+    public function suggesterAction()
+    {
+        $response = $this->getResponse();
+        $this->page = $this->api()->read('search_pages', $this->params('page-id'))->getContent();
+        $indexSettings = $this->page->index()->settings();
+        if (array_key_exists('suggester', $indexSettings)) {
+            if ($indexSettings['suggester']) {
+                if (array_key_exists('adapter', $indexSettings)) {
+                    if (array_key_exists('solr_node_id', $indexSettings['adapter'])) {
+                        $solrNode = $this->api()->read('solr_nodes', $indexSettings['adapter']['solr_node_id'])->getContent();
+                        $client = new SolrClient($solrNode->clientSettings());
+                        $solrQuery = new SolrQuery;
+                        $solrQuery->setTerms(true);
+                        $solrQuery->setTermsLimit(-1);
+                        $solrQuery->setTermsField($indexSettings['suggester']);
+                        $solrQuery->setOmitHeader(true);
+
+                        try {
+                            $solrQueryResponse = $client->query($solrQuery);
+                        } catch (SolrClientException $e) {
+                            throw new QuerierException($e->getMessage(), $e->getCode(), $e);
+                        }
+                        $solrResponse = $solrQueryResponse->getResponse();
+                        $response->setContent(json_encode($solrResponse));
+                        $response->getHeaders()->addHeaderLine('Content-Type', 'application/json');
+                        return $response;
+                    }
+                }
+            }
+        }
     }
 
     protected function setPagination($query, $page)

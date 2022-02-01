@@ -54,6 +54,14 @@ class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
                 'value' => ['items'],
             ],
         ]);
+        $this->add([
+            'name' => 'suggester',
+            'type' => 'text',
+            'options' => [
+                'label' => $translator->translate('Suggester field'),
+                'info' => 'Enter the field name (ie suggester_ss) to be used for use with Solr Terms Component for autocomplete functionality.',
+            ],
+        ]);
     }
 
     public function setApiManager($apiManager)

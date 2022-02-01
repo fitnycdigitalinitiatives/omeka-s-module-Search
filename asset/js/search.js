@@ -26,56 +26,58 @@
  */
 
 var Search = (function() {
-    var self = {};
+  var self = {};
 
-    self.objectFromQueryString = function(str) {
-        var params = {};
-        str
-            .replace(/(^\?)/, '')
-            .split("&")
-            .filter(function(element) { return element !== '' })
-            .forEach(function(n) {
-                n = n.split('=');
-                var name = decodeURIComponent(n[0]);
-                if (!params.hasOwnProperty(name)) {
-                    params[name] = decodeURIComponent(n[1]);
-                } else {
-                    if (!Array.isArray(params[name])) {
-                        params[name] = [params[name]];
-                    }
-                    params[name].push(decodeURIComponent(n[1]));
-                }
-            });
-
-        return params;
-    };
-
-    self.queryStringFromObject = function(obj) {
-        return Object.keys(obj).map(function(name) {
-            if (Array.isArray(obj[name])) {
-                return obj[name].map(function(value) {
-                    return name + '=' + value;
-                }).join('&');
-            } else {
-                return name + '=' + obj[name];
-            }
-        }).join('&');
-    };
-
-    self.sortBy = function(sort) {
-        var params = Search.objectFromQueryString(document.location.search);
-        params['sort'] = sort;
-        window.location.search = '?' + Search.queryStringFromObject(params);
-    };
-
-    self.setViewType = function(viewType) {
-        var resourceLists = document.querySelectorAll("div.resource-list");
-        for (var i = 0; i < resourceLists.length; i++) {
-            var resourceItem = resourceLists[i];
-            resourceItem.className = 'resource-list ' + viewType;
+  self.objectFromQueryString = function(str) {
+    var params = {};
+    str
+      .replace(/(^\?)/, '')
+      .split("&")
+      .filter(function(element) {
+        return element !== ''
+      })
+      .forEach(function(n) {
+        n = n.split('=');
+        var name = decodeURIComponent(n[0]);
+        if (!params.hasOwnProperty(name)) {
+          params[name] = decodeURIComponent(n[1]);
+        } else {
+          if (!Array.isArray(params[name])) {
+            params[name] = [params[name]];
+          }
+          params[name].push(decodeURIComponent(n[1]));
         }
-        localStorage.setItem('search_view_type', viewType);
-    };
+      });
 
-    return self;
+    return params;
+  };
+
+  self.queryStringFromObject = function(obj) {
+    return Object.keys(obj).map(function(name) {
+      if (Array.isArray(obj[name])) {
+        return obj[name].map(function(value) {
+          return name + '=' + value;
+        }).join('&');
+      } else {
+        return name + '=' + obj[name];
+      }
+    }).join('&');
+  };
+
+  self.sortBy = function(sort) {
+    var params = Search.objectFromQueryString(document.location.search);
+    params['sort'] = sort;
+    window.location.search = '?' + Search.queryStringFromObject(params);
+  };
+
+  self.setViewType = function(viewType) {
+    var resourceLists = document.querySelectorAll("div.resource-list");
+    for (var i = 0; i < resourceLists.length; i++) {
+      var resourceItem = resourceLists[i];
+      resourceItem.className = 'resource-list ' + viewType;
+    }
+    localStorage.setItem('search_view_type', viewType);
+  };
+
+  return self;
 })();

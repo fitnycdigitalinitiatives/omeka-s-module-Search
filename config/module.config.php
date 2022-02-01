@@ -79,6 +79,20 @@ return [
                           ],
                       ],
                   ],
+                  'suggester' => [
+                      'type' => 'Segment',
+                      'options' => [
+                          'route' => '/search-:page-id/suggester',
+                          'constraints' => [
+                              'page-id' => '\d+',
+                          ],
+                          'defaults' => [
+                              '__NAMESPACE__' => 'Search\Controller',
+                              'controller' => 'Index',
+                              'action' => 'suggester',
+                          ],
+                      ],
+                  ],
               ],
           ],
             'admin' => [
