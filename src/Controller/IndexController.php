@@ -162,11 +162,26 @@ class IndexController extends AbstractActionController
                 if (array_key_exists('adapter', $indexSettings)) {
                     if (array_key_exists('solr_node_id', $indexSettings['adapter'])) {
                         $solrNode = $this->api()->read('solr_nodes', $indexSettings['adapter']['solr_node_id'])->getContent();
+                        $solrNodeSettings = $solrNode->settings();
+                        $resource_name_field = $solrNodeSettings['resource_name_field'];
+                        $sites_field = $solrNodeSettings['sites_field'];
+                        $is_public_field = $solrNodeSettings['is_public_field'];
+                        $resources = $indexSettings['resources'];
                         $client = new SolrClient($solrNode->clientSettings());
                         $solrQuery = new SolrQuery;
-                        $solrQuery->setTerms(true);
-                        $solrQuery->setTermsLimit(-1);
-                        $solrQuery->setTermsField($indexSettings['suggester']);
+                        $solrQuery->setQuery('*:*');
+                        $fq = sprintf('%s:%d', $sites_field, $this->currentSite()->id());
+                        $solrQuery->addFilterQuery($fq);
+                        $fq = sprintf('%s:%s', $is_public_field, 'true');
+                        $solrQuery->addFilterQuery($fq);
+                        $fq = sprintf('%s:(%s)', $resource_name_field, implode(' OR ', $resources));
+                        $solrQuery->addFilterQuery($fq);
+                        $solrQuery->setFacet(true);
+                        $solrQuery->addFacetField($indexSettings['suggester']);
+                        $solrQuery->setFacetLimit(-1);
+                        $solrQuery->setFacetMinCount(1);
+                        $solrQuery->setRows(0);
+                        $solrQuery->setFacetSort(SolrQuery::FACET_SORT_COUNT);
                         $solrQuery->setOmitHeader(true);
 
                         try {
@@ -175,7 +190,12 @@ class IndexController extends AbstractActionController
                             throw new QuerierException($e->getMessage(), $e->getCode(), $e);
                         }
                         $solrResponse = $solrQueryResponse->getResponse();
-                        $response->setContent(json_encode($solrResponse));
+                        $formattedArray = array();
+                        foreach ($solrResponse["facet_counts"]["facet_fields"][$indexSettings['suggester']] as $key => $value) {
+                            $subArray = array('term' => $key, 'count' => $value);
+                            array_push($formattedArray, $subArray);
+                        }
+                        $response->setContent(json_encode($formattedArray));
                         $response->getHeaders()->addHeaderLine('Content-Type', 'application/json');
                         return $response;
                     }

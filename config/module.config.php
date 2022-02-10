@@ -82,7 +82,7 @@ return [
                   'suggester' => [
                       'type' => 'Segment',
                       'options' => [
-                          'route' => '/search-:page-id/suggester',
+                          'route' => '/search-:page-id/suggester.json',
                           'constraints' => [
                               'page-id' => '\d+',
                           ],
