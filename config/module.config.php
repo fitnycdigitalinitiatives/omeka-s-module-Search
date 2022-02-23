@@ -175,11 +175,6 @@ return [
             'Search\FormAdapterManager' => Service\FormAdapterManagerFactory::class,
         ],
     ],
-    'solr_value_formatters' => [
-        'invokables' => [
-            'date_range_plus' => ValueFormatter\DateRangePlus::class,
-        ],
-    ],
     'view_manager' => [
         'template_path_stack' => [
             dirname(__DIR__) . '/view',
