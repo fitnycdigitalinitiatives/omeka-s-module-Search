@@ -89,6 +89,31 @@ class StandardFormAdapter implements FormAdapterInterface
             $query->addFacetFilter($itemSetsField, array_filter($data['item_set_id']));
         }
 
+        $searchRangeField = $formSettings['date_range_field'] ?? '';
+
+        $date_range_start = isset($data['date_range_start']) ? $data['date_range_start'] : null;
+        if (is_array($date_range_start)) {
+            $date_range_start = array_filter($date_range_start);
+            if (!$date_range_start) {
+                $date_range_start = null;
+            } else {
+                $date_range_start = $date_range_start[0];
+            }
+        }
+
+        $date_range_end = isset($data['date_range_end']) ? $data['date_range_end'] : null;
+        if (is_array($date_range_end)) {
+            $date_range_end = array_filter($date_range_end);
+            if (!$date_range_end) {
+                $date_range_end = null;
+            } else {
+                $date_range_end = $date_range_end[0];
+            }
+        }
+        if ($searchRangeField && ($date_range_start || $date_range_end)) {
+            $query->addDateRangeFilter($searchRangeField, $date_range_start, $date_range_end);
+        }
+
         return $query;
     }
 

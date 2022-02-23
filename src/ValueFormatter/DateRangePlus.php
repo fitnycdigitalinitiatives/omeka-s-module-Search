@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright BibLibre, 2020
+ * Copyright BibLibre, 2016-2017
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software.  You can use, modify and/ or
@@ -27,58 +27,38 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 
-namespace Search\Form;
+namespace Search\ValueFormatter;
 
-use Laminas\Form\Form;
-use Laminas\I18n\Translator\TranslatorAwareInterface;
-use Laminas\I18n\Translator\TranslatorAwareTrait;
+use Solr\ValueFormatter\ValueFormatterInterface;
 
-class StandardForm extends Form implements TranslatorAwareInterface
+class DateRangePlus implements ValueFormatterInterface
 {
-    use TranslatorAwareTrait;
-
-    public function init()
+    public function getLabel()
     {
-        $translator = $this->getTranslator();
+        return 'Date range plus';
+    }
 
-        $this->add([
-            'name' => 'q',
-            'type' => 'Text',
-            'options' => [
-                'label' => $translator->translate('Search everywhere'),
-            ],
-            'attributes' => [
-                'placeholder' => $translator->translate('Search'),
-            ],
-        ]);
-
-        $searchPage = $this->getOption('search_page');
-        $settings = $searchPage->settings();
-
-        if (!empty($settings['form']['search_fields'])) {
-            $this->add([
-                'name' => 'filters',
-            ]);
+    public function format($value)
+    {
+        $matches = [];
+        if (preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $value)) {
+            return $value;
+        } elseif (preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])$/", $value)) {
+            return $value;
+        } elseif (preg_match('|^\s*(\d+)\s*[-/]\s*(\d+)\s*$|', $value, $matches)) {
+            $start = $matches[1];
+            $end = $matches[2];
+            if ($start > $end) {
+                return null;
+            }
+        } elseif (preg_match('|^\s*(\d+)\s*$|', $value, $matches)) {
+            return $value;
         }
 
-        if (!empty($settings['form']['resource_class_field'])) {
-            $this->add([
-                'name' => 'resource_class_id',
-            ]);
+        if (!isset($start) || !isset($end)) {
+            return null;
         }
 
-        if (!empty($settings['form']['item_sets_field'])) {
-            $this->add([
-                'name' => 'item_set_id',
-            ]);
-        }
-        if (!empty($settings['form']['date_range_field'])) {
-            $this->add([
-                'name' => 'date_range_start',
-            ]);
-            $this->add([
-                'name' => 'date_range_end',
-            ]);
-        }
+        return "[$start TO $end]";
     }
 }
