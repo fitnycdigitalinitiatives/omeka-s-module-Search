@@ -187,6 +187,7 @@ return [
         ],
         'invokables' => [
             'searchForm' => View\Helper\SearchForm::class,
+            'getSearchFormForSite' => View\Helper\GetSearchFormForSite::class,
         ],
     ],
     'search_form_adapters' => [

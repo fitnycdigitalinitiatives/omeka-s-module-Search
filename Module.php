@@ -106,9 +106,11 @@ class Module extends AbstractModule
         $connection->exec($sql);
     }
 
-    public function upgrade($oldVersion, $newVersion,
-        ServiceLocatorInterface $serviceLocator)
-    {
+    public function upgrade(
+        $oldVersion,
+        $newVersion,
+        ServiceLocatorInterface $serviceLocator
+    ) {
         $connection = $serviceLocator->get('Omeka\Connection');
 
         if (version_compare($oldVersion, '0.1.1', '<')) {
@@ -182,8 +184,23 @@ class Module extends AbstractModule
                     $id = $request->getId();
                     $indexer->deleteResource($requestResource, $id);
                 } else {
+                    //Try to clear from the index, then add it.
+                    $id = $request->getId();
+                    $indexer->deleteResource($requestResource, $id);
                     $resource = $response->getContent();
-                    $indexer->indexResource($resource);
+                    $siteIDs = array();
+                    $sites = $resource->getSites();
+                    foreach ($sites as $site) {
+                        array_push($siteIDs, $site->getId());
+                    }
+                    // Check if item is part of site that index is limited to
+                    if ($searchIndexSettings['site']) {
+                        if (in_array($searchIndexSettings['site'], $siteIDs)) {
+                            $indexer->indexResource($resource);
+                        }
+                    } else {
+                        $indexer->indexResource($resource);
+                    }
                 }
             }
         }

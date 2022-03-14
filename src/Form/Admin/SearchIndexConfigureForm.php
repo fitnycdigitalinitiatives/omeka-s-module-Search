@@ -32,6 +32,7 @@ namespace Search\Form\Admin;
 use Laminas\Form\Form;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
 use Laminas\I18n\Translator\TranslatorAwareTrait;
+use Omeka\Form\Element\SiteSelect;
 
 class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
 {
@@ -43,6 +44,18 @@ class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
     {
         $translator = $this->getTranslator();
 
+        $this->add([
+            'name' => 'site',
+            'type' => SiteSelect::class,
+            'options' => [
+                'label' => $translator->translate('Site indexed'),
+                'info' => 'Select which site should be indexed for this particular index.', // @translate
+                'empty_option' => '',
+            ],
+            'attributes' => [
+                'class' => 'chosen-select',
+            ],
+        ]);
         $this->add([
             'name' => 'resources',
             'type' => 'MultiCheckbox',

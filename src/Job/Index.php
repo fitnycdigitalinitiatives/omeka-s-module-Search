@@ -68,6 +68,7 @@ class Index extends AbstractJob
 
         $searchIndexSettings = $searchIndex->settings();
         $resourceNames = $searchIndexSettings['resources'];
+        $siteID = $searchIndexSettings['site'];
 
         $resourceNames = array_filter($resourceNames, function ($resourceName) use ($indexer) {
             return $indexer->canIndex($resourceName);
@@ -77,12 +78,37 @@ class Index extends AbstractJob
             $adapter = $apiAdapters->get($resourceName);
             $entityClass = $adapter->getEntityClass();
             $repository = $em->getRepository($entityClass);
-            $totalEntities = $repository->count([]);
-            $query = $repository->createQueryBuilder('r')
-                ->where('r.id > :lastId')
-                ->orderBy('r.id', 'ASC')
-                ->setMaxResults($batchSize)
-                ->getQuery();
+            // If limited to a site, only search for items/item sets that are part of that site. Otherwise index everything
+            if ($siteID) {
+                $totalEntities = $api
+                ->search($resourceName, ['limit' => 0, 'site_id' => $siteID])
+                ->getTotalResults();
+                $this->logger->info(sprintf('This site has %d total %s', $totalEntities, $resourceName));
+                if ($resourceName == 'items') {
+                    $query = $repository->createQueryBuilder('r')
+                      ->where('r.id > :lastId')
+                      ->andWhere(':siteID MEMBER OF r.sites')
+                      ->orderBy('r.id', 'ASC')
+                      ->setMaxResults($batchSize)
+                      ->getQuery();
+                    $query->setParameter('siteID', $siteID);
+                } elseif ($resourceName == 'item_sets') {
+                    $query = $repository->createQueryBuilder('r')
+                      ->where('r.id > :lastId')
+                      ->andWhere(':siteID MEMBER OF r.siteItemSets')
+                      ->orderBy('r.id', 'ASC')
+                      ->setMaxResults($batchSize)
+                      ->getQuery();
+                    $query->setParameter('siteID', $siteID);
+                }
+            } else {
+                $totalEntities = $repository->count([]);
+                $query = $repository->createQueryBuilder('r')
+                    ->where('r.id > :lastId')
+                    ->orderBy('r.id', 'ASC')
+                    ->setMaxResults($batchSize)
+                    ->getQuery();
+            }
 
             $query->setParameter('lastId', 0);
             $totalIndexed = 0;
