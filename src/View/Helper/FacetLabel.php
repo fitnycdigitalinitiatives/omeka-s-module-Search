@@ -32,6 +32,7 @@ namespace Search\View\Helper;
 use Laminas\View\Helper\AbstractHelper;
 use Laminas\Mvc\Application;
 use Omeka\Api\Manager as ApiManager;
+use Omeka\Mvc\Exception\RuntimeException;
 
 class FacetLabel extends AbstractHelper
 {
@@ -79,11 +80,18 @@ class FacetLabel extends AbstractHelper
     protected function getSearchPage()
     {
         if (!isset($this->searchPage)) {
-            $mvcEvent = $this->application->getMvcEvent();
-            $routeMatch = $mvcEvent->getRouteMatch();
-
-            $response = $this->api->read('search_pages', $routeMatch->getParam('page-id'));
-            $this->searchPage = $response->getContent();
+            $services = $this->application->getServiceManager();
+            $currentSite = $services->get('ControllerPluginManager')->get('currentSite');
+            $currentSiteID =  $currentSite()->id();
+            $searchPages = $this->api->search('search_pages')->getContent();
+            foreach ($searchPages as $searchPage) {
+                if ($currentSiteID == $searchPage->index()->settings()['site']) {
+                    $this->searchPage = $searchPage;
+                    return $this->searchPage;
+                }
+            }
+            //if no search page is found throw exception
+            throw new RuntimeException("A search page for this site is not properly configured.");
         }
 
         return $this->searchPage;

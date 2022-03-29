@@ -45,8 +45,7 @@ class IndexController extends AbstractActionController
 
     public function searchAction()
     {
-        $response = $this->api()->read('search_pages', $this->params('page-id'));
-        $this->page = $response->getContent();
+        $this->page = $this->getSearchPage();
         $index_id = $this->page->index()->id();
 
         $form = $this->searchForm($this->page);
@@ -54,9 +53,6 @@ class IndexController extends AbstractActionController
         $view = new ViewModel;
         $site = $this->currentSite();
         $params = $this->params()->fromQuery();
-        if (empty($params)) {
-            return $view;
-        }
 
         $form->setData($params);
         if (!$form->isValid()) {
@@ -155,7 +151,7 @@ class IndexController extends AbstractActionController
     public function suggesterAction()
     {
         $response = $this->getResponse();
-        $this->page = $this->api()->read('search_pages', $this->params('page-id'))->getContent();
+        $this->page = $this->getSearchPage();
         $indexSettings = $this->page->index()->settings();
         if (array_key_exists('suggester', $indexSettings)) {
             if ($indexSettings['suggester']) {
@@ -243,5 +239,17 @@ class IndexController extends AbstractActionController
         $sortOptions = $this->sortByWeight($sortOptions, 'sort_fields');
 
         return $sortOptions;
+    }
+    protected function getSearchPage()
+    {
+        $searchPages = $this->api()->search('search_pages')->getContent();
+        $currentSiteID = $this->currentSite()->id();
+        foreach ($searchPages as $searchPage) {
+            if ($currentSiteID == $searchPage->index()->settings()['site']) {
+                return $searchPage;
+            }
+        }
+        //if no search page is found throw exception
+        throw new RuntimeException("A search page for this site is not properly configured.");
     }
 }

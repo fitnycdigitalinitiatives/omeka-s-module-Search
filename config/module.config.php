@@ -68,10 +68,7 @@ return [
                   'search' => [
                       'type' => 'Segment',
                       'options' => [
-                          'route' => '/search-:page-id',
-                          'constraints' => [
-                              'page-id' => '\d+',
-                          ],
+                          'route' => '/search',
                           'defaults' => [
                               '__NAMESPACE__' => 'Search\Controller',
                               'controller' => 'Index',
@@ -82,7 +79,7 @@ return [
                   'suggester' => [
                       'type' => 'Segment',
                       'options' => [
-                          'route' => '/search-:page-id/suggester.json',
+                          'route' => '/search/suggester.json',
                           'constraints' => [
                               'page-id' => '\d+',
                           ],
@@ -187,6 +184,7 @@ return [
         ],
         'invokables' => [
             'searchForm' => View\Helper\SearchForm::class,
+            'getFacetsForBrowse' => View\Helper\GetFacetsForBrowse::class,
             'getSearchFormForSite' => View\Helper\GetSearchFormForSite::class,
         ],
     ],
