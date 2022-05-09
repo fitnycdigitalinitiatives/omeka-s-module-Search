@@ -181,6 +181,7 @@ return [
         'factories' => [
             'facetLink' => Service\ViewHelper\FacetLinkFactory::class,
             'facetLabel' => Service\ViewHelper\FacetLabelFactory::class,
+            'dateRangeFacetURL' => Service\ViewHelper\DateRangeFacetURLFactory::class,
         ],
         'invokables' => [
             'searchForm' => View\Helper\SearchForm::class,

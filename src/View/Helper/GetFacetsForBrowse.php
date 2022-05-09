@@ -56,6 +56,9 @@ class GetFacetsForBrowse extends AbstractHelper
                 if (isset($settings['facet_limit'])) {
                     $query->setFacetLimit($settings['facet_limit']);
                 }
+                if ($name = $settings['date_range_facet_field']) {
+                    $query->addStatField($name);
+                }
                 $query->setSite($site);
                 if (!$userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
                     $query->setIsPublic(true);
@@ -69,7 +72,8 @@ class GetFacetsForBrowse extends AbstractHelper
                 }
                 $facets = $response->getFacetCounts();
                 $facets = $this->sortByWeight($facets, 'facets');
-                return $facets;
+                $dateFacetStats = $response->getDateFacetStats();
+                return array('facets' => $facets, 'dateFacetStats' => $dateFacetStats);
             }
         }
         return null;

@@ -62,14 +62,16 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
         ]);
 
         $facets = new Fieldset('facets');
-        $facets->setLabel($translator->translate('Facets'));
+        $facets->setLabel($translator->translate('Standard Facets'));
         $facets->setAttribute('data-sortable', '1');
 
         $facetFields = $adapter->getAvailableFacetFields($searchPage->index());
+        $facetSelectOptions = [];
         $weights = range(0, count($facetFields));
         $weight_options = array_combine($weights, $weights);
         $weight = 0;
         foreach ($facetFields as $field) {
+            array_push($facetSelectOptions, array('value' => $field['name'], 'label' => $this->getFacetFieldLabel($field)));
             $fieldset = new Fieldset($field['name']);
             $fieldset->setLabel($this->getFacetFieldLabel($field));
 
@@ -107,6 +109,19 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
         }
 
         $this->add($facets);
+
+        $this->add([
+            'name' => 'date_range_facet_field',
+            'type' => 'Text',
+            'options' => [
+                'label' => $translator->translate('Date range facet field'),
+                'info' => $translator->translate('Date field used to create a range slider in the facets. Uses Solr Stat function to get min and max values, so DateYear value formatter must be use to format string to be year, ie not "ca. 2005".'),
+                'empty_option' => '',
+            ],
+            'attributes' => [
+              'placeholder' => 'dcterms_date_ss',
+            ],
+        ]);
 
         $sort_fields_fieldset = new Fieldset('sort_fields');
         $sort_fields_fieldset->setLabel($translator->translate('Sort fields'));

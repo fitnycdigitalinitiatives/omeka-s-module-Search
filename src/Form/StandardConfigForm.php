@@ -75,6 +75,7 @@ class StandardConfigForm extends Fieldset implements TranslatorAwareInterface, I
             'type' => 'Text',
             'options' => [
                 'label' => $translator->translate('Date range field'),
+                'info' => $translator->translate('Date field with type dateRange used to search ranges in the search form.'),
                 'empty_option' => '',
             ],
         ]);

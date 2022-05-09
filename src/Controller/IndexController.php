@@ -108,6 +108,10 @@ class IndexController extends AbstractActionController
             }
         }
 
+        if ($name = $settings['date_range_facet_field']) {
+            $query->addStatField($name);
+        }
+
         $query->setSite($this->currentSite());
 
         if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
@@ -135,6 +139,7 @@ class IndexController extends AbstractActionController
 
         $facets = $response->getFacetCounts();
         $facets = $this->sortByWeight($facets, 'facets');
+        $dateFacetStats = $response->getDateFacetStats();
 
         $totalResults = array_map(function ($resource) use ($response) {
             return $response->getResourceTotalResults($resource);
@@ -144,6 +149,7 @@ class IndexController extends AbstractActionController
         $view->setVariable('site', $site);
         $view->setVariable('response', $response);
         $view->setVariable('facets', $facets);
+        $view->setVariable('dateFacetStats', $dateFacetStats);
         $view->setVariable('sortOptions', $sortOptions);
 
         return $view;

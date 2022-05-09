@@ -40,6 +40,7 @@ class Query
     protected $facetFilters = [];
     protected $queryFilters = [];
     protected $dateRangeFilters = [];
+    protected $statFields = [];
     protected $offset = 0 ;
     protected $limit = 0;
     protected $resources = [];
@@ -127,6 +128,16 @@ class Query
     public function getDateRangeFilters()
     {
         return $this->dateRangeFilters;
+    }
+
+    public function addStatField($name)
+    {
+        array_push($this->statFields, $name);
+    }
+
+    public function getStatFields()
+    {
+        return $this->statFields;
     }
 
     public function setSort($sort)

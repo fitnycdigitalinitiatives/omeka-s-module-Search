@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright BibLibre, 2016
+ * Copyright BibLibre, 2017
  *
  * This software is governed by the CeCILL license under French law and abiding
  * by the rules of distribution of free software.  You can use, modify and/ or
@@ -27,71 +27,20 @@
  * knowledge of the CeCILL license and that you accept its terms.
  */
 
-namespace Search;
+namespace Search\Service\ViewHelper;
 
-class Response
+use Interop\Container\ContainerInterface;
+use Laminas\ServiceManager\Factory\FactoryInterface;
+use Search\View\Helper\DateRangeFacetURL;
+
+class DateRangeFacetURLFactory implements FactoryInterface
 {
-    protected $totalResults;
-    protected $resourceTotalResults = [];
-
-    protected $results = [];
-    protected $facetCounts = [];
-    protected $dateFacetStats = [];
-
-    public function setTotalResults($totalResults)
+    public function __invoke(ContainerInterface $container, $requestedName, array $options = null)
     {
-        $this->totalResults = $totalResults;
-    }
+        $application = $container->get('Application');
 
-    public function getTotalResults()
-    {
-        return $this->totalResults;
-    }
+        $viewHelper = new DateRangeFacetURL($application);
 
-    public function setResourceTotalResults($resource, $totalResults)
-    {
-        $this->resourceTotalResults[$resource] = $totalResults;
-    }
-
-    public function getResourceTotalResults($resource)
-    {
-        if (!isset($this->resourceTotalResults[$resource])) {
-            return 0;
-        }
-
-        return $this->resourceTotalResults[$resource];
-    }
-
-    public function addResult($resource, $result)
-    {
-        $this->results[$resource][] = $result;
-    }
-
-    public function getResults($resource)
-    {
-        return isset($this->results[$resource]) ? $this->results[$resource] : [];
-    }
-
-    public function addFacetCount($name, $value, $count)
-    {
-        $this->facetCounts[$name][] = [
-            'value' => $value,
-            'count' => $count,
-        ];
-    }
-
-    public function getFacetCounts()
-    {
-        return $this->facetCounts;
-    }
-
-    public function addDateFacetStat($value)
-    {
-        $this->dateFacetStats = $value;
-    }
-
-    public function getDateFacetStats()
-    {
-        return $this->dateFacetStats;
+        return $viewHelper;
     }
 }
