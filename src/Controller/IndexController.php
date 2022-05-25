@@ -174,7 +174,9 @@ class IndexController extends AbstractActionController
                         $solrQuery->setQuery('*:*');
                         $fq = sprintf('%s:%d', $sites_field, $this->currentSite()->id());
                         $solrQuery->addFilterQuery($fq);
-                        $fq = sprintf('%s:%s', $is_public_field, 'true');
+                        if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
+                            $fq = sprintf('%s:%s', $is_public_field, 'true');
+                        }
                         $solrQuery->addFilterQuery($fq);
                         $fq = sprintf('%s:(%s)', $resource_name_field, implode(' OR ', $resources));
                         $solrQuery->addFilterQuery($fq);
