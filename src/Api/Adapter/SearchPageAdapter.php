@@ -74,15 +74,15 @@ class SearchPageAdapter extends AbstractEntityAdapter
     /**
      * {@inheritDoc}
      */
-    public function hydrate(Request $request, EntityInterface $entity,
+    public function hydrate(
+        Request $request,
+        EntityInterface $entity,
         ErrorStore $errorStore
     ) {
         if ($this->shouldHydrate($request, 'o:name')) {
             $entity->setName($request->getValue('o:name'));
         }
-        if ($this->shouldHydrate($request, 'o:path')) {
-            $entity->setPath($request->getValue('o:path'));
-        }
+        $entity->setPath('solr/search');
         if ($this->shouldHydrate($request, 'o:index_id')) {
             $indexId = $request->getValue('o:index_id');
             $entity->setIndex($this->getAdapter('search_indexes')->findEntity($indexId));
@@ -104,30 +104,36 @@ class SearchPageAdapter extends AbstractEntityAdapter
             $errorStore->addError('o:name', 'The name cannot be empty.');
         }
 
-        $path = $entity->getPath();
-        if (!$this->isUnique($entity, ['path' => $path])) {
-            $errorStore->addError('o:path', sprintf('The path "%s" is already taken.', $path));
+        $index = $entity->getIndex();
+        if (!$this->isUnique($entity, ['index' => $index])) {
+            $errorStore->addError('o:index', sprintf('The index "%s" has already been associated with another search page.', $index->getName()));
         }
     }
 
     public function buildQuery(QueryBuilder $qb, array $query)
     {
         if (isset($query['name'])) {
-            $qb->andWhere($qb->expr()->eq(
-                'omeka_root.name',
-                $this->createNamedParameter($qb, $query['name']))
+            $qb->andWhere(
+                $qb->expr()->eq(
+                    'omeka_root.name',
+                    $this->createNamedParameter($qb, $query['name'])
+                )
             );
         }
         if (isset($query['path'])) {
-            $qb->andWhere($qb->expr()->eq(
-                'omeka_root.path',
-                $this->createNamedParameter($qb, $query['path']))
+            $qb->andWhere(
+                $qb->expr()->eq(
+                    'omeka_root.path',
+                    $this->createNamedParameter($qb, $query['path'])
+                )
             );
         }
         if (isset($query['form'])) {
-            $qb->andWhere($qb->expr()->eq(
-                'omeka_root.formAdapter',
-                $this->createNamedParameter($qb, $query['form']))
+            $qb->andWhere(
+                $qb->expr()->eq(
+                    'omeka_root.formAdapter',
+                    $this->createNamedParameter($qb, $query['form'])
+                )
             );
         }
     }

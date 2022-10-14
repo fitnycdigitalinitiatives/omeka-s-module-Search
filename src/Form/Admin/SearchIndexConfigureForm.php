@@ -49,7 +49,7 @@ class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
             'type' => SiteSelect::class,
             'options' => [
                 'label' => $translator->translate('Site indexed'),
-                'info' => 'Select which site should be indexed for this particular index.', // @translate
+                'info' => 'Select which site should be indexed for this particular index. NOTE: Do not associate a site with more than one index.', // @translate
                 'empty_option' => '',
             ],
             'attributes' => [

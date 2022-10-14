@@ -54,16 +54,16 @@ class SearchPageForm extends Form
             ],
         ]);
 
-        $this->add([
-            'name' => 'o:path',
-            'type' => 'Text',
-            'options' => [
-                'label' => $translator->translate('Path'),
-            ],
-            'attributes' => [
-                'required' => true,
-            ],
-        ]);
+        // $this->add([
+        //     'name' => 'o:path',
+        //     'type' => 'Text',
+        //     'options' => [
+        //         'label' => $translator->translate('Path'),
+        //     ],
+        //     'attributes' => [
+        //         'required' => true,
+        //     ],
+        // ]);
 
         $this->add([
             'name' => 'o:index_id',
