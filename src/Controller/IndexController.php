@@ -138,6 +138,14 @@ class IndexController extends AbstractActionController
         }
 
         $facets = $response->getFacetCounts();
+        $totalResults = $response->getTotalResults();
+        foreach ($facets as $facetName => $facetsSet) {
+            foreach ($facetsSet as $facetsSetKey => $facetArray) {
+                if ($facetArray["count"] == $totalResults) {
+                    unset($facets[$facetName][$facetsSetKey]);
+                }
+            }
+        }
         $facets = $this->sortByWeight($facets, 'facets');
         $dateFacetStats = $response->getDateFacetStats();
 
