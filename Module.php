@@ -179,14 +179,16 @@ class Module extends AbstractModule
             $searchIndexSettings = $searchIndex->settings();
             if (in_array($requestResource, $searchIndexSettings['resources'])) {
                 $indexer = $searchIndex->indexer();
-
-                if ($request->getOperation() == 'delete') {
+                $operation = $request->getOperation();
+                if ($operation == 'delete') {
                     $id = $request->getId();
                     $indexer->deleteResource($requestResource, $id);
                 } else {
                     //Try to clear from the index, then add it.
                     $id = $request->getId();
-                    $indexer->deleteResource($requestResource, $id);
+                    if ($operation != 'create') {
+                        $indexer->deleteResource($requestResource, $id);
+                    }
                     $resource = $response->getContent();
                     $siteIDs = array();
                     $sites = $resource->getSites();
