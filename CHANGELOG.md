@@ -5,7 +5,88 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.0]
+## [0.15.3] - 2024-02-21
+
+- Standard form: be more lenient about DOM structure when adding a new filter
+  or a new group of filters (this allow themes that override
+  standard-match-group.phtml to wrap these buttons in other HTML elements)
+
+## [0.15.2] - 2024-01-08
+
+- Avoid "undefined variable $title" warning in resource-list.phtml
+- Escape HTML in $title in resource-list.phtml
+
+## [0.15.1] - 2024-01-03
+
+- Fix order of search fields returned by
+  Search\View\Helper\SearchForm::getAvailableSearchFields
+
+## [0.15.0] - 2023-11-16
+
+- Add highlighting support
+
+## [0.14.0] - 2023-11-16
+
+### Added
+
+- Add proximity setting to add an input on search form to choose distance between terms.
+- Change UI of search page configuration form for facet fields, sort fields and
+  search fields to be more easily configurable and more "Omeka-like".
+  Remove dependency on jQuery UI.
+- Add "facet value renderers" (extensible by modules) that allow to show to
+  users a value different from what is indexed.
+  The new built-in facet value renderer allows to render a resource's title
+  when only it's ID is indexed.
+- Makes the standard search form easily extensible by breaking it into smaller
+  parts, allowing modules to add new parts and allowing user to enable each
+  part individually and arrange them in any order.
+
+## [0.13.0] - 2023-06-23
+
+### Changed
+
+- Resources that are created or updated in batch are now indexed in batch.
+  Previously each resource was indexed separately. It allows adapters to
+  optimize the indexing process.
+- Resources that are created or updated are now indexed in a background job in
+  order to not slow down the request. Except when we are already in a
+  background job or a script executed from command line. In that case resources
+  are indexed immediately.
+
+## [0.12.1] - 2023-05-09
+
+### Fixed
+
+- Fixed display of facets when the "save queries" feature is off
+
+## [0.12.0] - 2023-05-04
+
+This version is now compatible with Omeka S 4.0.0
+
+The minimum Omeka S version required is 3.0.0
+
+## [0.11.0] - 2022-12-15
+
+### Added
+
+- Added ability to save queries and manage them with block display
+
+### Fixed
+
+- Add advanced-search js and css assets to correctly add specific input on form (class, item set)
+
+## [0.10.0] - 2022-11-03
+
+### Added
+
+- Added ability to modify the order of search fields in standard form's
+  configuration
+
+### Fixed
+
+- Exceptions thrown by indexers are now caught and logged
+
+## [0.9.0] - 2021-04-14
 ### Added
 - Provides to search adapters the ability to returns the resources they can
   handle (contributed by @kyfr59)
@@ -111,12 +192,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First release
 
-[0.9.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.8.0...v0.9.0
-[0.8.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.7.1...v0.8.0
-[0.7.1]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.7.0...v0.7.1
-[0.7.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/biblibre/omeka-s-module-Search/compare/v0.2.0...v0.3.0
+[0.15.3]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.15.3
+[0.15.2]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.15.2
+[0.15.1]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.15.1
+[0.15.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.15.0
+[0.14.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.14.0
+[0.13.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.13.0
+[0.12.1]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.12.1
+[0.12.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.12.0
+[0.11.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.11.0
+[0.10.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.10.0
+[0.9.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.9.0
+[0.8.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.8.0
+[0.7.1]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.7.1
+[0.7.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.7.0
+[0.6.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.6.0
+[0.5.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.5.0
+[0.4.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.4.0
+[0.3.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.3.0
 [0.2.0]: https://github.com/biblibre/omeka-s-module-Search/releases/tag/v0.2.0

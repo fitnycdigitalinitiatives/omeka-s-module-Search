@@ -42,18 +42,22 @@ class SearchForm extends AbstractHelper
     public function getAvailableSearchFields()
     {
         $index = $this->searchPage->index();
-        $adapter = $index->adapter();
-
         $settings = $this->searchPage->settings();
 
-        if (!empty($settings['form']['search_fields'])) {
-            $searchFields = $adapter->getAvailableSearchFields($index);
-            return array_filter($searchFields, function ($searchField) use ($settings) {
-                return in_array($searchField['name'], $settings['form']['search_fields']);
-            });
+        $indexAvailableSearchFields = array_column($index->availableSearchFields(), null, 'name');
+        $availableSearchFields = [];
+        foreach ($settings['form']['search_fields'] ?? [] as $searchField) {
+            $name = $searchField['name'];
+            if (array_key_exists($name, $indexAvailableSearchFields)) {
+                $indexSearchField = $indexAvailableSearchFields[$name];
+                if (!empty($searchField['label'])) {
+                    $indexSearchField['label'] = $searchField['label'];
+                }
+                $availableSearchFields[] = $indexSearchField;
+            }
         }
 
-        return [];
+        return $availableSearchFields;
     }
 
     public function getAvailableOperators()

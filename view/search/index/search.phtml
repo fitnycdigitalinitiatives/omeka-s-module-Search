@@ -33,9 +33,11 @@
     $escape = $this->plugin('escapeHtml');
     $this->headLink()->appendStylesheet($this->assetUrl('css/search.css', 'Search'));
     $this->headScript()->appendFile($this->assetUrl('js/search.js', 'Search'));
+    $this->headScript()->appendFile($this->assetUrl('js/highlights.js', 'Search'));
+    $user = $this->identity();
 ?>
 
-<?php echo $this->pageTitle($this->translate('Search'), 2); ?>
+<?php echo $this->pageTitle($this->translate('Search'), 2); ?> 
 
 <?php echo $this->messages(); ?>
 
@@ -82,6 +84,9 @@
                 ?>
             <?php else: ?>
                 <div class="noresults"><?php echo $this->translate('Your query returned no results'); ?></div>
+            <?php endif; ?>
+            <?php if(isset($user) && $saveQueryParam) : ?>
+            <?php echo $this->saveQuery(['site_id' => $site->id(), 'search_page_id' => $searchPageId, 'query_string' => $queryParams ]) ;?>
             <?php endif; ?>
         </div>
 

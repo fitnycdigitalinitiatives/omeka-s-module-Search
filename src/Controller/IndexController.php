@@ -73,7 +73,7 @@ class IndexController extends AbstractActionController
             throw new RuntimeException($msg);
         }
 
-        $query = $formAdapter->toQuery($form->getData(), $searchFormSettings);
+        $query = $formAdapter->toQuery($params, $searchFormSettings);
         $response = $this->api()->read('search_indexes', $index_id);
         $this->index = $response->getContent();
 
@@ -91,10 +91,8 @@ class IndexController extends AbstractActionController
         }
 
         $settings = $this->page->settings();
-        foreach ($settings['facets'] as $name => $facet) {
-            if ($facet['enabled']) {
-                $query->addFacetField($name);
-            }
+        foreach ($settings['facets'] as $facet) {
+            $query->addFacetField($facet['name']);
         }
         if (isset($settings['facet_limit'])) {
             $query->setFacetLimit($settings['facet_limit']);
@@ -128,7 +126,7 @@ class IndexController extends AbstractActionController
         }
 
         $query->setSort($sort);
-        $page_number = isset($params['page']) ? $params['page'] : 1;
+        $page_number = $params['page'] ?? 1;
         $this->setPagination($query, $page_number);
         try {
             $response = $querier->query($query);
@@ -148,6 +146,11 @@ class IndexController extends AbstractActionController
         }
         $facets = $this->sortByWeight($facets, 'facets');
         $dateFacetStats = $response->getDateFacetStats();
+        $saveQueryParam = $this->page->settings()['save_queries'] ?? false;
+
+        $queryParams = json_encode($this->params()->fromQuery());
+        $searchPageId = $this->page->id();
+        $siteId = $site->id();
 
         $totalResults = array_map(function ($resource) use ($response) {
             return $response->getResourceTotalResults($resource);
@@ -158,7 +161,10 @@ class IndexController extends AbstractActionController
         $view->setVariable('response', $response);
         $view->setVariable('facets', $facets);
         $view->setVariable('dateFacetStats', $dateFacetStats);
+        $view->setVariable('saveQueryParam', $saveQueryParam);
         $view->setVariable('sortOptions', $sortOptions);
+        $view->setVariable('queryParams', $queryParams);
+        $view->setVariable('searchPageId', $searchPageId);
 
         return $view;
     }
@@ -238,21 +244,14 @@ class IndexController extends AbstractActionController
         $sortOptions = [];
 
         $sortFields = $this->index->adapter()->getAvailableSortFields($this->index);
+        $sortFieldsMap = array_combine(array_column($sortFields, 'name'), $sortFields);
         $settings = $this->page->settings();
-        foreach ($settings['sort_fields'] as $name => $sort_field) {
-            if ($sort_field['enabled']) {
-                if (isset($sort_field['display']['label']) && !empty($sort_field['display']['label'])) {
-                    $label = $sort_field['display']['label'];
-                } elseif (isset($sortFields[$name]['label']) && !empty($sortFields[$name]['label'])) {
-                    $label = $sortFields[$name]['label'];
-                } else {
-                    $label = $name;
-                }
+        foreach ($settings['sort_fields'] as $sort_field) {
+            $name = $sort_field['name'];
+            $label = $sort_field['label'] ?? $sortFieldsMap[$name]['label'] ?? $name;
 
-                $sortOptions[$name] = $label;
-            }
+            $sortOptions[$name] = $label;
         }
-        $sortOptions = $this->sortByWeight($sortOptions, 'sort_fields');
 
         return $sortOptions;
     }

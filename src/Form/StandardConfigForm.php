@@ -30,44 +30,67 @@
 namespace Search\Form;
 
 use Laminas\Form\Fieldset;
-use Laminas\I18n\Translator\TranslatorAwareInterface;
-use Laminas\I18n\Translator\TranslatorAwareTrait;
-use Laminas\InputFilter\InputFilterProviderInterface;
+use Search\Form\Element\Fields;
 
-class StandardConfigForm extends Fieldset implements TranslatorAwareInterface, InputFilterProviderInterface
+class StandardConfigForm extends Fieldset
 {
-    use TranslatorAwareTrait;
+    protected $urlViewHelper;
+
+    protected $searchFormElementManager;
 
     public function init()
     {
-        $translator = $this->getTranslator();
+        $url = $this->urlViewHelper;
 
+        $searchPage = $this->getOption('search_page');
+        $index = $searchPage->index();
+        $searchFields = $index->availableSearchFields();
+        $searchFieldValueOptions = array_column($searchFields, 'label', 'name');
         $this->add([
             'name' => 'search_fields',
-            'type' => 'MultiCheckbox',
+            'type' => Fields::class,
             'options' => [
-                'label' => $translator->translate('Search fields'),
-                'value_options' => $this->getAdapterSearchFieldsOptions(),
+                'label' => 'Search fields', // @translate
+                'empty_option' => 'Add a search field', // @translate
+                'value_options' => $searchFieldValueOptions,
+                'field_list_url' => $url('admin/search/search-fields', ['action' => 'field-list'], ['query' => ['search_page_id' => $searchPage->id()]]),
+                'field_row_url' => $url('admin/search/search-fields', ['action' => 'field-row'], ['query' => ['search_page_id' => $searchPage->id()]]),
+                'field_edit_sidebar_url' => $url('admin/search/search-fields', ['action' => 'field-edit-sidebar'], ['query' => ['search_page_id' => $searchPage->id()]]),
             ],
         ]);
 
         $this->add([
-            'name' => 'resource_class_field',
-            'type' => 'Select',
+            'name' => 'proximity',
+            'type' => 'Checkbox',
             'options' => [
-                'label' => $translator->translate('Resource class field'),
-                'value_options' => $this->getAdapterFacetFieldsOptions(),
-                'empty_option' => '',
+                'label' => 'Proximity', // @translate
+                'info' => 'Add proximity option on search form to choose distance between terms', // @translate
             ],
         ]);
 
+        $searchFormElementNames = $this->searchFormElementManager->getRegisteredNames($sortAlpha = true);
+        $searchFormElementValueOptions = [];
+        foreach ($searchFormElementNames as $name) {
+            $searchFormElement = $this->searchFormElementManager->get($name);
+            $searchFormElementValueOptions[] = [
+                'value' => $name,
+                'label' => $searchFormElement->getLabel(),
+                'attributes' => [
+                    'data-repeatable' => $searchFormElement->isRepeatable() ? '1' : '',
+                ],
+            ];
+        }
+
         $this->add([
-            'name' => 'item_sets_field',
-            'type' => 'Select',
+            'name' => 'elements',
+            'type' => Fields::class,
             'options' => [
-                'label' => $translator->translate('Item sets field'),
-                'value_options' => $this->getAdapterFacetFieldsOptions(),
-                'empty_option' => '',
+                'label' => 'Form elements', // @translate
+                'empty_option' => 'Add a form element', // @translate
+                'value_options' => $searchFormElementValueOptions,
+                'field_list_url' => $url('admin/search/form-elements', ['action' => 'field-list'], ['query' => ['search_page_id' => $searchPage->id()]]),
+                'field_row_url' => $url('admin/search/form-elements', ['action' => 'field-row'], ['query' => ['search_page_id' => $searchPage->id()]]),
+                'field_edit_sidebar_url' => $url('admin/search/form-elements', ['action' => 'field-edit-sidebar'], ['query' => ['search_page_id' => $searchPage->id()]]),
             ],
         ]);
         $this->add([
@@ -81,36 +104,13 @@ class StandardConfigForm extends Fieldset implements TranslatorAwareInterface, I
         ]);
     }
 
-    protected function getAdapterFacetFieldsOptions()
+    public function setUrlViewHelper($urlViewHelper)
     {
-        $searchPage = $this->getOption('search_page');
-        $index = $searchPage->index();
-        $fields = $index->adapter()->getAvailableFacetFields($index);
-
-        return array_column($fields, 'label', 'name');
+        $this->urlViewHelper = $urlViewHelper;
     }
 
-    protected function getAdapterSearchFieldsOptions()
+    public function setSearchFormElementManager($searchFormElementManager): void
     {
-        $searchPage = $this->getOption('search_page');
-        $index = $searchPage->index();
-        $fields = $index->adapter()->getAvailableSearchFields($index);
-
-        return array_column($fields, 'label', 'name');
-    }
-
-    public function getInputFilterSpecification()
-    {
-        return [
-            'search_fields' => [
-                'required' => false,
-            ],
-            'resource_class_field' => [
-                'required' => false,
-            ],
-            'item_sets_field' => [
-                'required' => false,
-            ],
-        ];
+        $this->searchFormElementManager = $searchFormElementManager;
     }
 }

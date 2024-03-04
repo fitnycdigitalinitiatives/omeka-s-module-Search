@@ -30,31 +30,21 @@
 namespace Search\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
-use Laminas\Mvc\Application;
-use Omeka\Api\Manager as ApiManager;
 use Omeka\Mvc\Exception\RuntimeException;
 
 class FacetLabel extends AbstractHelper
 {
-    protected $application;
-    protected $api;
-
     protected $availableFacetFields;
-    protected $searchPage;
-
-    public function __construct(Application $application, ApiManager $api)
-    {
-        $this->application = $application;
-        $this->api = $api;
-    }
 
     public function __invoke($name)
     {
         $searchPage = $this->getSearchPage();
         $settings = $searchPage->settings();
 
-        if (!empty($settings['facets'][$name]['display']['label'])) {
-            return $settings['facets'][$name]['display']['label'];
+        foreach ($settings['facets'] ?? [] as $facet) {
+            if ($facet['name'] === $name && $facet['label'] ?? '' !== '') {
+                return $facet['label'];
+            }
         }
 
         $availableFacetFields = $this->getAvailableFacetFields();
@@ -69,9 +59,8 @@ class FacetLabel extends AbstractHelper
     {
         if (!isset($this->availableFacetFields)) {
             $searchPage = $this->getSearchPage();
-            $searchAdapter = $searchPage->index()->adapter();
 
-            $this->availableFacetFields = $searchAdapter->getAvailableFacetFields($searchPage->index());
+            $this->availableFacetFields = $searchPage->index()->availableFacetFields();
         }
 
         return $this->availableFacetFields;
@@ -80,9 +69,7 @@ class FacetLabel extends AbstractHelper
     protected function getSearchPage()
     {
         if (!isset($this->searchPage)) {
-            $services = $this->application->getServiceManager();
-            $currentSite = $services->get('ControllerPluginManager')->get('currentSite');
-            $currentSiteID =  $currentSite()->id();
+            $currentSiteID = $this->getView()->currentSite()->id();
             $searchPages = $this->api->search('search_pages')->getContent();
             foreach ($searchPages as $searchPage) {
                 if ($currentSiteID == $searchPage->index()->settings()['site']) {
