@@ -53,14 +53,9 @@ class SearchPageController extends AbstractActionController
         $formData = $form->getData();
         $response = $this->api()->create('search_pages', $formData);
 
-        if ($response) {
-            $this->messenger()->addSuccess('Search page created.');
-            $searchPage = $response->getContent();
-            return $this->redirect()->toUrl($searchPage->url('configure'));
-        } else {
-            $this->messenger()->addError('The selected index has already been associated with a search page. Only one search page per index.');
-            return $view;
-        }
+        $this->messenger()->addSuccess('Search page created.');
+        $searchPage = $response->getContent();
+        return $this->redirect()->toUrl($searchPage->url('configure'));
     }
 
     public function editAction()

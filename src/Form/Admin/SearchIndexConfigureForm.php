@@ -32,7 +32,7 @@ namespace Search\Form\Admin;
 use Laminas\Form\Form;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
 use Laminas\I18n\Translator\TranslatorAwareTrait;
-use Omeka\Form\Element\SiteSelect;
+use Omeka\Form\Element\ItemSetSelect;
 
 class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
 {
@@ -45,16 +45,17 @@ class SearchIndexConfigureForm extends Form implements TranslatorAwareInterface
         $translator = $this->getTranslator();
 
         $this->add([
-            'name' => 'site',
-            'type' => SiteSelect::class,
+            'name' => 'collections',
+            'type' => ItemSetSelect::class,
             'options' => [
-                'label' => $translator->translate('Site indexed'),
-                'info' => 'Select which site should be indexed for this particular index. NOTE: Do not associate a site with more than one index.',
+                'label' => $translator->translate('Collections not to index'),
+                'info' => 'Select which collections should NOT be indexed, ie "processing."',
                 // @translate
                 'empty_option' => '',
             ],
             'attributes' => [
                 'class' => 'chosen-select',
+                'multiple' => true,
             ],
         ]);
         $this->add([

@@ -26,7 +26,24 @@ class UpdateIndex extends AbstractJob
         $searchIndexes = $api->search('search_indexes')->getContent();
         foreach ($searchIndexes as $searchIndex) {
             $searchIndexSettings = $searchIndex->settings();
-            $filteredResources = array_filter($resources, fn ($resource) => in_array($resource->getResourceName(), $searchIndexSettings['resources']));
+            // Filter out items that are part of non-indexed item sets
+            if (array_key_exists('collections', $searchIndexSettings) && ($itemSetIDs = $searchIndexSettings['collections'])) {
+                $filterSetsResources = array_filter($resources, function ($resource) use ($itemSetIDs) {
+                    if ($resource->getResourceName() == 'items') {
+                        foreach ($resource->getItemSets() as $itemSet) {
+                            if (in_array($itemSet->getId(), $itemSetIDs)) {
+                                return false;
+                            }
+                        }
+                    }
+                    return true;
+                });
+                $resources = $filterSetsResources;
+                if (empty($resources)) {
+                    return;
+                }
+            }
+            $filteredResources = array_filter($resources, fn($resource) => in_array($resource->getResourceName(), $searchIndexSettings['resources']));
             if (empty($filteredResources)) {
                 continue;
             }

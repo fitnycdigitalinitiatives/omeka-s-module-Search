@@ -17,13 +17,13 @@ class GetFacetsForBrowse extends AbstractHelper
             return null;
         }
         $view = $this->getView();
-        $site = $view->vars()->site;
+        $site = $view->currentSite();
         $currentSiteID = $site->id();
         $api = $view->plugin('api');
         $userIsAllowed = $view->plugin('userIsAllowed');
         $searchPages = $api->search('search_pages')->getContent();
         foreach ($searchPages as $searchPage) {
-            if ($currentSiteID == $searchPage->index()->settings()['site']) {
+            if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
                 $this->page = $searchPage;
                 $index_id = $this->page->index()->id();
                 $response = $api->read('search_indexes', $index_id);
@@ -48,10 +48,8 @@ class GetFacetsForBrowse extends AbstractHelper
                         }
                     }
                 }
-                foreach ($settings['facets'] as $name => $facet) {
-                    if ($facet['enabled']) {
-                        $query->addFacetField($name);
-                    }
+                foreach ($settings['facets'] as $facet) {
+                    $query->addFacetField($facet['name']);
                 }
                 if (isset($settings['facet_limit'])) {
                     $query->setFacetLimit($settings['facet_limit']);
@@ -70,7 +68,14 @@ class GetFacetsForBrowse extends AbstractHelper
                 } catch (QuerierException $e) {
                     return null;
                 }
-                $facets = $response->getFacetCounts();
+                $facetCounts = $response->getFacetCounts();
+                $facets = [];
+                foreach ($settings['facets'] as $facet) {
+                    $name = $facet['name'];
+                    if (array_key_exists($name, $facetCounts)) {
+                        $facets[$name] = $facetCounts[$name];
+                    }
+                }
                 $totalResults = $response->getTotalResults();
                 foreach ($facets as $facetName => $facetsSet) {
                     foreach ($facetsSet as $facetsSetKey => $facetArray) {
@@ -79,22 +84,10 @@ class GetFacetsForBrowse extends AbstractHelper
                         }
                     }
                 }
-                $facets = $this->sortByWeight($facets, 'facets');
                 $dateFacetStats = $response->getDateFacetStats();
                 return array('facets' => $facets, 'dateFacetStats' => $dateFacetStats);
             }
         }
         return null;
-    }
-
-    protected function sortByWeight($fields, $setting_name)
-    {
-        $settings = $this->page->settings();
-        uksort($fields, function ($a, $b) use ($settings, $setting_name) {
-            $aWeight = $settings[$setting_name][$a]['weight'];
-            $bWeight = $settings[$setting_name][$b]['weight'];
-            return $aWeight - $bWeight;
-        });
-        return $fields;
     }
 }

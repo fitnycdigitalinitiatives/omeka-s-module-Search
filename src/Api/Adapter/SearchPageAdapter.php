@@ -104,10 +104,10 @@ class SearchPageAdapter extends AbstractEntityAdapter
             $errorStore->addError('o:name', 'The name cannot be empty.');
         }
 
-        $index = $entity->getIndex();
-        if (!$this->isUnique($entity, ['index' => $index])) {
-            $errorStore->addError('o:index', sprintf('The index "%s" has already been associated with another search page.', $index->getName()));
-        }
+        // $path = $entity->getPath();
+        // if (!$this->isUnique($entity, ['path' => $path])) {
+        //     $errorStore->addError('o:path', sprintf('The path "%s" is already taken.', $path));
+        // }
     }
 
     public function buildQuery(QueryBuilder $qb, array $query)

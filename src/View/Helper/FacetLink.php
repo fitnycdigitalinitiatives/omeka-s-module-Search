@@ -10,16 +10,17 @@ class FacetLink extends AbstractHelper
     {
         $view = $this->getView();
         $query = $view->params()->fromQuery();
+        $route = $view->params()->fromRoute();
 
-        if ($route == 'site/resource' || $route == 'site/item-set') {
+        if (strtolower($route["__CONTROLLER__"]) == 'item') {
             $active = false;
             $newQuery = array();
             $newQuery['limit'][$name][] = $facet['value'];
             $itemSetIDs = null;
             if (array_key_exists('item_set_id', $query)) {
                 $itemSetIDs = $query['item_set_id'];
-            } elseif (array_key_exists('item-set-id', $params)) {
-                $itemSetIDs = $params['item-set-id'];
+            } elseif (array_key_exists('item-set-id', $route)) {
+                $itemSetIDs = $route['item-set-id'];
             }
             if ($itemSetIDs) {
                 if (!is_array($itemSetIDs)) {

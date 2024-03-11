@@ -69,10 +69,11 @@ class FacetLabel extends AbstractHelper
     protected function getSearchPage()
     {
         if (!isset($this->searchPage)) {
-            $currentSiteID = $this->getView()->currentSite()->id();
-            $searchPages = $this->api->search('search_pages')->getContent();
+            $view = $this->getView();
+            $currentSiteID = $view->currentSite()->id();
+            $searchPages = $view->api()->search('search_pages')->getContent();
             foreach ($searchPages as $searchPage) {
-                if ($currentSiteID == $searchPage->index()->settings()['site']) {
+                if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
                     $this->searchPage = $searchPage;
                     return $this->searchPage;
                 }

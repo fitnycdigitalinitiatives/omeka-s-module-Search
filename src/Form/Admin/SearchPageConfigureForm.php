@@ -33,6 +33,7 @@ use Laminas\Form\Form;
 use Laminas\I18n\Translator\TranslatorAwareInterface;
 use Laminas\I18n\Translator\TranslatorAwareTrait;
 use Search\Form\Element\Fields;
+use Omeka\Form\Element\SiteSelect;
 
 class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
 {
@@ -49,6 +50,21 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
         $searchPage = $this->getOption('search_page');
         $adapter = $searchPage->index()->adapter();
         $settings = $searchPage->settings();
+
+        $this->add([
+            'name' => 'site',
+            'type' => SiteSelect::class,
+            'options' => [
+                'label' => $translator->translate('Site'),
+                'info' => 'Select which site should be associated with this page. NOTE: Do not associate a site with more than one page.',
+                // @translate
+                'empty_option' => '',
+            ],
+            'attributes' => [
+                'class' => 'chosen-select',
+                'required' => true,
+            ],
+        ]);
 
         $this->add([
             'name' => 'save_queries',
@@ -100,10 +116,6 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
                 'placeholder' => 'dcterms_date_ss',
             ],
         ]);
-
-        $sort_fields_fieldset = new Fieldset('sort_fields');
-        $sort_fields_fieldset->setLabel($translator->translate('Sort fields'));
-        $sort_fields_fieldset->setAttribute('data-sortable', '1');
 
         $sortFields = $adapter->getAvailableSortFields($searchPage->index());
         $sortFieldValueOptions = array_column($sortFields, 'label', 'name');

@@ -97,8 +97,8 @@ class StandardConfigForm extends Fieldset
             'name' => 'date_range_field',
             'type' => 'Text',
             'options' => [
-                'label' => $translator->translate('Date range field'),
-                'info' => $translator->translate('Date field with type dateRange used to search ranges in the search form.'),
+                'label' => 'Date range field', // @translate
+                'info' => 'Date field with type dateRange used to search ranges in the search form.', // @translate
                 'empty_option' => '',
             ],
         ]);

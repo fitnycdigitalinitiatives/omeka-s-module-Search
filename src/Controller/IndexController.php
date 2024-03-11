@@ -135,7 +135,14 @@ class IndexController extends AbstractActionController
             return $view;
         }
 
-        $facets = $response->getFacetCounts();
+        $facetCounts = $response->getFacetCounts();
+        $facets = [];
+        foreach ($settings['facets'] as $facet) {
+            $name = $facet['name'];
+            if (array_key_exists($name, $facetCounts)) {
+                $facets[$name] = $facetCounts[$name];
+            }
+        }
         $totalResults = $response->getTotalResults();
         foreach ($facets as $facetName => $facetsSet) {
             foreach ($facetsSet as $facetsSetKey => $facetArray) {
@@ -144,13 +151,11 @@ class IndexController extends AbstractActionController
                 }
             }
         }
-        $facets = $this->sortByWeight($facets, 'facets');
         $dateFacetStats = $response->getDateFacetStats();
         $saveQueryParam = $this->page->settings()['save_queries'] ?? false;
 
         $queryParams = json_encode($this->params()->fromQuery());
         $searchPageId = $this->page->id();
-        $siteId = $site->id();
 
         $totalResults = array_map(function ($resource) use ($response) {
             return $response->getResourceTotalResults($resource);
@@ -260,7 +265,7 @@ class IndexController extends AbstractActionController
         $searchPages = $this->api()->search('search_pages')->getContent();
         $currentSiteID = $this->currentSite()->id();
         foreach ($searchPages as $searchPage) {
-            if ($currentSiteID == $searchPage->index()->settings()['site']) {
+            if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
                 return $searchPage;
             }
         }
