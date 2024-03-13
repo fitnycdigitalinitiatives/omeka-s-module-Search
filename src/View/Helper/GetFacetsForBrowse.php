@@ -72,16 +72,23 @@ class GetFacetsForBrowse extends AbstractHelper
                 $facets = [];
                 foreach ($settings['facets'] as $facet) {
                     $name = $facet['name'];
-                    if (array_key_exists($name, $facetCounts)) {
+                    if (array_key_exists($name, $facetCounts) && $facetCounts[$name]) {
                         $facets[$name] = $facetCounts[$name];
                     }
                 }
                 $totalResults = $response->getTotalResults();
+                // Remove facets that are all the results
                 foreach ($facets as $facetName => $facetsSet) {
                     foreach ($facetsSet as $facetsSetKey => $facetArray) {
                         if ($facetArray["count"] == $totalResults) {
                             unset($facets[$facetName][$facetsSetKey]);
                         }
+                    }
+                }
+                // Remove any empty facet sets
+                foreach ($facets as $facetName => $facetsSet) {
+                    if (!$facetsSet) {
+                        unset($facets[$facetName]);
                     }
                 }
                 $dateFacetStats = $response->getDateFacetStats();
