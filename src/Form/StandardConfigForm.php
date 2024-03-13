@@ -68,31 +68,6 @@ class StandardConfigForm extends Fieldset
             ],
         ]);
 
-        $searchFormElementNames = $this->searchFormElementManager->getRegisteredNames($sortAlpha = true);
-        $searchFormElementValueOptions = [];
-        foreach ($searchFormElementNames as $name) {
-            $searchFormElement = $this->searchFormElementManager->get($name);
-            $searchFormElementValueOptions[] = [
-                'value' => $name,
-                'label' => $searchFormElement->getLabel(),
-                'attributes' => [
-                    'data-repeatable' => $searchFormElement->isRepeatable() ? '1' : '',
-                ],
-            ];
-        }
-
-        $this->add([
-            'name' => 'elements',
-            'type' => Fields::class,
-            'options' => [
-                'label' => 'Form elements', // @translate
-                'empty_option' => 'Add a form element', // @translate
-                'value_options' => $searchFormElementValueOptions,
-                'field_list_url' => $url('admin/search/form-elements', ['action' => 'field-list'], ['query' => ['search_page_id' => $searchPage->id()]]),
-                'field_row_url' => $url('admin/search/form-elements', ['action' => 'field-row'], ['query' => ['search_page_id' => $searchPage->id()]]),
-                'field_edit_sidebar_url' => $url('admin/search/form-elements', ['action' => 'field-edit-sidebar'], ['query' => ['search_page_id' => $searchPage->id()]]),
-            ],
-        ]);
         $this->add([
             'name' => 'date_range_field',
             'type' => 'Text',
@@ -102,6 +77,24 @@ class StandardConfigForm extends Fieldset
                 'empty_option' => '',
             ],
         ]);
+        $this->add([
+            'name' => 'item_sets_field',
+            'type' => 'Select',
+            'options' => [
+                'label' => 'Item Set ID field', // @translate
+                'value_options' => $this->getAdapterFacetFieldsOptions(),
+                'empty_option' => '',
+            ],
+        ]);
+    }
+
+    protected function getAdapterFacetFieldsOptions()
+    {
+        $searchPage = $this->getOption('search_page');
+        $index = $searchPage->index();
+        $fields = $index->adapter()->getAvailableFacetFields($index);
+
+        return array_column($fields, 'label', 'name');
     }
 
     public function setUrlViewHelper($urlViewHelper)

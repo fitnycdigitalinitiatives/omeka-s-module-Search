@@ -61,12 +61,6 @@ class StandardForm extends Form implements TranslatorAwareInterface
             ]);
         }
 
-        if (!empty($settings['form']['resource_class_field'])) {
-            $this->add([
-                'name' => 'resource_class_id',
-            ]);
-        }
-
         if (!empty($settings['form']['item_sets_field'])) {
             $this->add([
                 'name' => 'item_set_id',
