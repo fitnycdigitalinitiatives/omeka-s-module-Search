@@ -70,10 +70,9 @@ class StandardFormAdapter implements FormAdapterInterface
             $query->addQueryFilter($data['filters']);
         }
 
-        foreach ($formSettings['elements'] ?? [] as $formElementData) {
-            $name = $formElementData['name'];
-            $formElement = $this->searchFormElementManager->get($name);
-            $formElement->applyToQuery($query, $data, $formElementData);
+        $itemSetsField = $formSettings['item_sets_field'] ?? '';
+        if ($itemSetsField && !empty($data['item_set_id'])) {
+            $query->addFacetFilter($itemSetsField, array_filter($data['item_set_id']));
         }
 
         $searchRangeField = $formSettings['date_range_field'] ?? '';
