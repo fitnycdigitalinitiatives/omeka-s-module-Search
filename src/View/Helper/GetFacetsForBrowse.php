@@ -85,12 +85,6 @@ class GetFacetsForBrowse extends AbstractHelper
                         }
                     }
                 }
-                // Remove any empty facet sets
-                foreach ($facets as $facetName => $facetsSet) {
-                    if (!$facetsSet) {
-                        unset($facets[$facetName]);
-                    }
-                }
                 $dateFacetStats = $response->getDateFacetStats();
                 return array('facets' => $facets, 'dateFacetStats' => $dateFacetStats);
             }

@@ -152,12 +152,6 @@ class IndexController extends AbstractActionController
                 }
             }
         }
-        // Remove any empty facet sets
-        foreach ($facets as $facetName => $facetsSet) {
-            if (!$facetsSet) {
-                unset($facets[$facetName]);
-            }
-        }
         $dateFacetStats = $response->getDateFacetStats();
         $saveQueryParam = $this->page->settings()['save_queries'] ?? false;
 
