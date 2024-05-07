@@ -31,9 +31,11 @@ namespace Search;
 
 use Laminas\ModuleManager\ModuleManager;
 use Laminas\EventManager\SharedEventManagerInterface;
+use Laminas\EventManager\Event;
 use Laminas\Mvc\MvcEvent;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use Omeka\Module\AbstractModule;
+use Composer\Semver\Comparator;
 
 class Module extends AbstractModule
 {
@@ -49,9 +51,13 @@ class Module extends AbstractModule
         $acl = $this->getServiceLocator()->get('Omeka\Acl');
         $acl->allow(null, 'Search\Api\Adapter\SearchPageAdapter');
         $acl->allow(null, 'Search\Api\Adapter\SearchIndexAdapter');
+        $acl->allow(null, 'Search\Api\Adapter\SavedQueryAdapter');
         $acl->allow(null, 'Search\Entity\SearchPage', 'read');
         $acl->allow(null, 'Search\Entity\SearchIndex', 'read');
+        $acl->allow(null, 'Search\Entity\SavedQuery', 'create');
+        $acl->allow(null, 'Search\Entity\SavedQuery', 'delete');
         $acl->allow(null, 'Search\Controller\Index');
+        $acl->allow(null, 'Search\Controller\SavedQuery');
     }
 
     public function init(ModuleManager $moduleManager)
@@ -91,7 +97,7 @@ class Module extends AbstractModule
         $connection->exec($sql);
         $sql = '
             CREATE TABLE IF NOT EXISTS `search_page` (
-                `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+                id INT AUTO_INCREMENT NOT NULL,
                 `name` varchar(255) NOT NULL,
                 `path` varchar(255) NOT NULL,
                 `index_id` int(11) unsigned NOT NULL,
@@ -99,11 +105,16 @@ class Module extends AbstractModule
                 `settings` text,
                 `created` datetime NOT NULL,
                 `modified` datetime DEFAULT NULL,
-                PRIMARY KEY (`id`),
+                PRIMARY KEY (id),
                 FOREIGN KEY (`index_id`) REFERENCES `search_index` (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         ';
         $connection->exec($sql);
+
+        $connection->exec('CREATE TABLE saved_query (id INT AUTO_INCREMENT NOT NULL, user_id INT DEFAULT NULL, site_id INT DEFAULT NULL, search_page_id INT DEFAULT NULL, query_string LONGTEXT NOT NULL, query_title VARCHAR(255) NOT NULL, query_description LONGTEXT DEFAULT NULL, INDEX IDX_496E6EF2A76ED395 (user_id), INDEX IDX_496E6EF2F6BD1646 (site_id), INDEX IDX_496E6EF281978C7E (search_page_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB');
+        $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF2A76ED395 FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE');
+        $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF2F6BD1646 FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE');
+        $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF281978C7E FOREIGN KEY (search_page_id) REFERENCES search_page (id) ON DELETE CASCADE');
     }
 
     public function upgrade(
@@ -119,91 +130,184 @@ class Module extends AbstractModule
                 CHANGE `form` `form_adapter` varchar(255) NOT NULL
             ');
         }
+
+        if (version_compare($oldVersion, '0.10.0', '<')) {
+            $pages = $connection->fetchAll('SELECT id, settings FROM search_page WHERE form_adapter = ?', ['standard']);
+            foreach ($pages as $page) {
+                $settings = json_decode($page['settings'], true);
+                $search_fields = [];
+                if (isset($settings['form']['search_fields'])) {
+                    foreach ($settings['form']['search_fields'] as $i => $fieldName) {
+                        $search_fields[$fieldName] = [
+                            'enabled' => '1',
+                            'weight' => $i,
+                        ];
+                    }
+                    $settings['form']['search_fields'] = $search_fields;
+                    $connection->update('search_page', ['settings' => json_encode($settings)], ['id' => $page['id']]);
+                }
+            }
+        }
+
+        if (Comparator::lessThan($oldVersion, '0.11.0')) {
+            $connection->exec('ALTER TABLE search_page MODIFY id INT AUTO_INCREMENT NOT NULL');
+
+            $connection->exec('CREATE TABLE saved_query (id INT AUTO_INCREMENT NOT NULL, user_id INT DEFAULT NULL, site_id INT DEFAULT NULL, search_page_id INT DEFAULT NULL, query_string LONGTEXT NOT NULL, query_title VARCHAR(255) NOT NULL, query_description LONGTEXT DEFAULT NULL, INDEX IDX_496E6EF2A76ED395 (user_id), INDEX IDX_496E6EF2F6BD1646 (site_id), INDEX IDX_496E6EF281978C7E (search_page_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ENGINE = InnoDB');
+            $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF2A76ED395 FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE');
+            $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF2F6BD1646 FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE');
+            $connection->exec('ALTER TABLE saved_query ADD CONSTRAINT FK_496E6EF281978C7E FOREIGN KEY (search_page_id) REFERENCES search_page (id) ON DELETE CASCADE');
+        }
+
+        if (Comparator::lessThan($oldVersion, '0.14.0')) {
+            $pages = $connection->executeQuery('SELECT id, settings, form_adapter FROM search_page')->fetchAll();
+            foreach ($pages as $page) {
+                $settings = json_decode($page['settings'], true);
+
+                $enabled_facets = array_filter($settings['facets'] ?? [], fn($a) => $a['enabled'] ?? false);
+                uasort($enabled_facets, fn($a, $b) => $a['weight'] - $b['weight']);
+                $settings['facets'] = [];
+                foreach ($enabled_facets as $fieldName => $facetData) {
+                    $settings['facets'][] = [
+                        'name' => $fieldName,
+                        'label' => $facetData['display']['label'] ?? '',
+                    ];
+                }
+
+                $enabled_sort_fields = array_filter($settings['sort_fields'] ?? [], fn($a) => $a['enabled'] ?? false);
+                uasort($enabled_sort_fields, fn($a, $b) => $a['weight'] - $b['weight']);
+                $settings['sort_fields'] = [];
+                foreach ($enabled_sort_fields as $fieldName => $sortFieldData) {
+                    $settings['sort_fields'][] = [
+                        'name' => $fieldName,
+                        'label' => $sortFieldData['display']['label'] ?? '',
+                    ];
+                }
+
+                if ($page['form_adapter'] === 'standard') {
+                    $enabled_search_fields = array_filter($settings['form']['search_fields'] ?? [], fn($a) => $a['enabled'] ?? false);
+                    uasort($enabled_search_fields, fn($a, $b) => $a['weight'] - $b['weight']);
+                    $settings['form'] ??= [];
+                    $settings['form']['search_fields'] = [];
+                    foreach ($enabled_search_fields as $fieldName => $searchFieldData) {
+                        $settings['form']['search_fields'][] = [
+                            'name' => $fieldName,
+                        ];
+                    }
+                }
+
+                $connection->update('search_page', ['settings' => json_encode($settings)], ['id' => $page['id']]);
+            }
+        }
     }
 
     public function uninstall(ServiceLocatorInterface $serviceLocator)
     {
         $connection = $serviceLocator->get('Omeka\Connection');
-        $sql = 'DROP TABLE IF EXISTS `search_page`';
-        $connection->exec($sql);
-        $sql = 'DROP TABLE IF EXISTS `search_index`';
-        $connection->exec($sql);
+
+        $connection->exec('DROP TABLE IF EXISTS saved_query');
+        $connection->exec('DROP TABLE IF EXISTS search_page');
+        $connection->exec('DROP TABLE IF EXISTS search_index');
     }
 
     public function attachListeners(SharedEventManagerInterface $sharedEventManager)
     {
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemAdapter',
-            'api.create.post',
-            [$this, 'updateSearchIndex']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemAdapter',
-            'api.update.post',
-            [$this, 'updateSearchIndex']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemAdapter',
-            'api.delete.post',
-            [$this, 'updateSearchIndex']
-        );
-
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemSetAdapter',
-            'api.create.post',
-            [$this, 'updateSearchIndex']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemSetAdapter',
-            'api.update.post',
-            [$this, 'updateSearchIndex']
-        );
-        $sharedEventManager->attach(
-            'Omeka\Api\Adapter\ItemSetAdapter',
-            'api.delete.post',
-            [$this, 'updateSearchIndex']
-        );
+        $identifiers = ['Omeka\Api\Adapter\ItemAdapter', 'Omeka\Api\Adapter\ItemSetAdapter'];
+        foreach ($identifiers as $identifier) {
+            $sharedEventManager->attach(
+                $identifier,
+                'api.update.post',
+                [$this, 'onResourceUpdatePost']
+            );
+            $sharedEventManager->attach(
+                $identifier,
+                'api.create.post',
+                [$this, 'onResourceCreatePost']
+            );
+            $sharedEventManager->attach(
+                $identifier,
+                'api.delete.post',
+                [$this, 'onResourceDeletePost']
+            );
+        }
     }
 
-    public function updateSearchIndex($event)
+    public function onResourceUpdatePost(Event $event)
+    {
+        $response = $event->getParam('response');
+        $resource = $response->getContent();
+        $this->indexResources([$resource]);
+    }
+
+    public function onResourceCreatePost(Event $event)
+    {
+        $response = $event->getParam('response');
+        $resource = $response->getContent();
+        $this->indexResources([$resource]);
+    }
+
+    public function onResourceDeletePost(Event $event)
     {
         $serviceLocator = $this->getServiceLocator();
         $api = $serviceLocator->get('Omeka\ApiManager');
-
+        $logger = $serviceLocator->get('Omeka\Logger');
         $request = $event->getParam('request');
-        $response = $event->getParam('response');
-        $requestResource = $request->getResource();
 
         $searchIndexes = $api->search('search_indexes')->getContent();
         foreach ($searchIndexes as $searchIndex) {
             $searchIndexSettings = $searchIndex->settings();
-            if (in_array($requestResource, $searchIndexSettings['resources'])) {
+            if (!in_array($request->getResource(), $searchIndexSettings['resources'])) {
+                continue;
+            }
+
+            try {
                 $indexer = $searchIndex->indexer();
-                $operation = $request->getOperation();
-                if ($operation == 'delete') {
-                    $id = $request->getId();
-                    $indexer->deleteResource($requestResource, $id);
-                } else {
-                    //Try to clear from the index, then add it.
-                    $id = $request->getId();
-                    if ($operation != 'create') {
-                        $indexer->deleteResource($requestResource, $id);
-                    }
-                    $resource = $response->getContent();
-                    $siteIDs = array();
-                    $sites = $resource->getSites();
-                    foreach ($sites as $site) {
-                        array_push($siteIDs, $site->getId());
-                    }
-                    // Check if item is part of site that index is limited to
-                    if ($searchIndexSettings['site']) {
-                        if (in_array($searchIndexSettings['site'], $siteIDs)) {
-                            $indexer->indexResource($resource);
+                $indexer->deleteResource($request->getResource(), $request->getId());
+            } catch (\Exception $e) {
+                $logger->err(sprintf('Search: failed to delete resource: %s', $e));
+            }
+        }
+    }
+
+    protected function indexResources(array $resources)
+    {
+        if (empty($resources)) {
+            return;
+        }
+
+        $serviceLocator = $this->getServiceLocator();
+        $logger = $serviceLocator->get('Omeka\Logger');
+
+        $api = $serviceLocator->get('Omeka\ApiManager');
+        $searchIndexes = $api->search('search_indexes')->getContent();
+        foreach ($searchIndexes as $searchIndex) {
+            $searchIndexSettings = $searchIndex->settings();
+            // Filter out items that are part of non-indexed item sets
+            if (array_key_exists('collections', $searchIndexSettings) && ($itemSetIDs = $searchIndexSettings['collections'])) {
+                $filterSetsResources = array_filter($resources, function ($resource) use ($itemSetIDs) {
+                    if ($resource->getResourceName() == 'items') {
+                        foreach ($resource->getItemSets() as $itemSet) {
+                            if (in_array($itemSet->getId(), $itemSetIDs)) {
+                                return false;
+                            }
                         }
-                    } else {
-                        $indexer->indexResource($resource);
                     }
+                    return true;
+                });
+                $resources = $filterSetsResources;
+                if (empty($resources)) {
+                    continue;
                 }
+            }
+            $filteredResources = array_filter($resources, fn($resource) => in_array($resource->getResourceName(), $searchIndexSettings['resources']));
+            if (empty($filteredResources)) {
+                continue;
+            }
+
+            try {
+                $indexer = $searchIndex->indexer();
+                $indexer->indexResources($filteredResources);
+            } catch (\Exception $e) {
+                $logger->err(sprintf('Search: failed to index resources: %s', $e));
             }
         }
     }

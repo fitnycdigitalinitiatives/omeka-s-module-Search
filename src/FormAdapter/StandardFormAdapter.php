@@ -29,11 +29,14 @@
 
 namespace Search\FormAdapter;
 
+use Search\FormElement\Manager as SearchFormElementManager;
 use Search\Query;
 
 class StandardFormAdapter implements FormAdapterInterface
 {
     protected $apiManager;
+
+    protected $searchFormElementManager;
 
     public function getLabel()
     {
@@ -65,23 +68,6 @@ class StandardFormAdapter implements FormAdapterInterface
 
         if (!empty($data['filters'])) {
             $query->addQueryFilter($data['filters']);
-        }
-
-        $resourceClassField = $formSettings['resource_class_field'] ?? '';
-        if ($resourceClassField && !empty($data['resource_class_id'])) {
-            $api = $this->getApiManager();
-            $terms = [];
-            foreach ($data['resource_class_id'] as $id) {
-                try {
-                    $resourceClass = $api->read('resource_classes', $id)->getContent();
-                    $terms[] = $resourceClass->term();
-                } catch (\Omeka\Api\Exception\NotFoundException $e) {
-                }
-            }
-
-            if (!empty($terms)) {
-                $query->addFacetFilter($resourceClassField, $terms);
-            }
         }
 
         $itemSetsField = $formSettings['item_sets_field'] ?? '';
@@ -125,5 +111,10 @@ class StandardFormAdapter implements FormAdapterInterface
     public function getApiManager()
     {
         return $this->apiManager;
+    }
+
+    public function setSearchFormElementManager(SearchFormElementManager $searchFormElementManager): void
+    {
+        $this->searchFormElementManager = $searchFormElementManager;
     }
 }

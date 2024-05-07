@@ -12,7 +12,7 @@ class GetSearchFormForSite extends AbstractHelper
         $searchPages = $api->search('search_pages')->getContent();
         $currentSiteID = $site->id();
         foreach ($searchPages as $searchPage) {
-            if ($currentSiteID == $searchPage->index()->settings()['site']) {
+            if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
                 $searchForm = $this->getView()->plugin('searchForm');
                 return $searchForm($searchPage);
             }

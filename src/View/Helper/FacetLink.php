@@ -3,34 +3,24 @@
 namespace Search\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
-use Laminas\Mvc\Application;
 
 class FacetLink extends AbstractHelper
 {
-    public function __construct(Application $application)
-    {
-        $this->application = $application;
-    }
-
     public function __invoke($name, $facet)
     {
-        $mvcEvent = $this->application->getMvcEvent();
-        $routeMatch = $mvcEvent->getRouteMatch();
-        $request = $mvcEvent->getRequest();
+        $view = $this->getView();
+        $query = $view->params()->fromQuery();
+        $route = $view->params()->fromRoute();
 
-        $route = $routeMatch->getMatchedRouteName();
-        $params = $routeMatch->getParams();
-        $query = $request->getQuery()->toArray();
-
-        if ($route == 'site/resource' || $route == 'site/item-set') {
+        if (strtolower($route["__CONTROLLER__"]) == 'item') {
             $active = false;
             $newQuery = array();
             $newQuery['limit'][$name][] = $facet['value'];
             $itemSetIDs = null;
             if (array_key_exists('item_set_id', $query)) {
                 $itemSetIDs = $query['item_set_id'];
-            } elseif (array_key_exists('item-set-id', $params)) {
-                $itemSetIDs = $params['item-set-id'];
+            } elseif (array_key_exists('item-set-id', $route)) {
+                $itemSetIDs = $route['item-set-id'];
             }
             if ($itemSetIDs) {
                 if (!is_array($itemSetIDs)) {
@@ -58,15 +48,12 @@ class FacetLink extends AbstractHelper
             unset($query['page']);
         }
 
-
-
-
-        $view = $this->getView();
         $url = $view->url('site/search', ['__NAMESPACE__' => 'Search\Controller', 'controller' => 'index', 'action' => 'search'], ['query' => $query], true);
 
         return $view->partial('search/facet-link', [
             'url' => $url,
             'active' => $active,
+            'name' => $name,
             'value' => $facet['value'],
             'count' => $facet['count'],
         ]);
