@@ -8,14 +8,16 @@ This module add search capabilities to the public interface of Omeka S.
 
 Module has been forked to work with Auto Commits in solrconfig.xml. For example:
 
-`<autoCommit>
+```
+<autoCommit>
     <maxTime>${solr.autoCommit.maxTime:15000}</maxTime>
     <openSearcher>false</openSearcher>
 </autoCommit>
 
 <autoSoftCommit>
     <maxTime>${solr.autoSoftCommit.maxTime:600000}</maxTime>
-</autoSoftCommit>`
+</autoSoftCommit>
+```
 
 This module alone is basically useless, but it provides a common interface for
 other modules to extend it.
