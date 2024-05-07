@@ -39,8 +39,6 @@ use Composer\Semver\Comparator;
 
 class Module extends AbstractModule
 {
-    protected $resourcesBeingUpdatedInBatch = [];
-
     public function getConfig()
     {
         return include __DIR__ . '/config/module.config.php';
@@ -217,28 +215,8 @@ class Module extends AbstractModule
         foreach ($identifiers as $identifier) {
             $sharedEventManager->attach(
                 $identifier,
-                'api.batch_update.pre',
-                [$this, 'onResourceBatchUpdatePre']
-            );
-            $sharedEventManager->attach(
-                $identifier,
-                'api.batch_update.post',
-                [$this, 'onResourceBatchUpdatePost']
-            );
-            $sharedEventManager->attach(
-                $identifier,
                 'api.update.post',
                 [$this, 'onResourceUpdatePost']
-            );
-            $sharedEventManager->attach(
-                $identifier,
-                'api.batch_create.pre',
-                [$this, 'onResourceBatchCreatePre']
-            );
-            $sharedEventManager->attach(
-                $identifier,
-                'api.batch_create.post',
-                [$this, 'onResourceBatchCreatePost']
             );
             $sharedEventManager->attach(
                 $identifier,
@@ -253,72 +231,15 @@ class Module extends AbstractModule
         }
     }
 
-    public function onResourceBatchUpdatePre(Event $event)
-    {
-        $request = $event->getParam('request');
-        $ids = $request->getIds();
-        foreach ($ids as $id) {
-            $key = sprintf('%s:%s', $request->getResource(), $id);
-            $this->resourcesBeingUpdatedInBatch[$key] = true;
-        }
-    }
-
-    public function onResourceBatchUpdatePost(Event $event)
-    {
-        $response = $event->getParam('response');
-        $resources = $response->getContent();
-        $this->indexResources($resources);
-
-        foreach ($resources as $resource) {
-            $key = sprintf('%s:%s', $resource->getResourceName(), $resource->getId());
-            unset($this->resourcesBeingUpdatedInBatch[$key]);
-        }
-    }
-
     public function onResourceUpdatePost(Event $event)
     {
-        $request = $event->getParam('request');
-        $key = sprintf('%s:%s', $request->getResource(), $request->getId());
-        if (array_key_exists($key, $this->resourcesBeingUpdatedInBatch)) {
-            // Do nothing. These resources will be indexed in
-            // api.batch_update.post listener
-            return;
-        }
-
         $response = $event->getParam('response');
         $resource = $response->getContent();
         $this->indexResources([$resource]);
     }
 
-    public function onResourceBatchCreatePre(Event $event)
-    {
-        $request = $event->getParam('request');
-        $content = $request->getContent();
-        foreach ($content as &$c) {
-            // This is used in api.create.post listener to avoid indexing the
-            // same resources twice
-            $c['o-module-search:batch-create'] = true;
-        }
-        $request->setContent($content);
-    }
-
-    public function onResourceBatchCreatePost(Event $event)
-    {
-        $response = $event->getParam('response');
-        $resources = $response->getContent();
-        $this->indexResources($resources);
-    }
-
     public function onResourceCreatePost(Event $event)
     {
-        $request = $event->getParam('request');
-        $content = $request->getContent();
-        if (array_key_exists('o-module-search:batch-create', $content)) {
-            // Do nothing. These resources will be indexed in
-            // api.batch_create.post listener
-            return;
-        }
-
         $response = $event->getParam('response');
         $resource = $response->getContent();
         $this->indexResources([$resource]);
@@ -355,50 +276,39 @@ class Module extends AbstractModule
 
         $serviceLocator = $this->getServiceLocator();
         $logger = $serviceLocator->get('Omeka\Logger');
-        $jobDispatcher = $serviceLocator->get(\Omeka\Job\Dispatcher::class);
 
-        // If we are in a background job or a script executed from the command
-        // line, we do not have a time limit so we can index resources
-        // immediately.
-        // Otherwise, index resources in a background job in order to not slow
-        // down the request
-        if (PHP_SAPI === 'cli') {
-            $api = $serviceLocator->get('Omeka\ApiManager');
-            $searchIndexes = $api->search('search_indexes')->getContent();
-            foreach ($searchIndexes as $searchIndex) {
-                $searchIndexSettings = $searchIndex->settings();
-                // Filter out items that are part of non-indexed item sets
-                if (array_key_exists('collections', $searchIndexSettings) && ($itemSetIDs = $searchIndexSettings['collections'])) {
-                    $filterSetsResources = array_filter($resources, function ($resource) use ($itemSetIDs) {
-                        if ($resource->getResourceName() == 'items') {
-                            foreach ($resource->getItemSets() as $itemSet) {
-                                if (in_array($itemSet->getId(), $itemSetIDs)) {
-                                    return false;
-                                }
+        $api = $serviceLocator->get('Omeka\ApiManager');
+        $searchIndexes = $api->search('search_indexes')->getContent();
+        foreach ($searchIndexes as $searchIndex) {
+            $searchIndexSettings = $searchIndex->settings();
+            // Filter out items that are part of non-indexed item sets
+            if (array_key_exists('collections', $searchIndexSettings) && ($itemSetIDs = $searchIndexSettings['collections'])) {
+                $filterSetsResources = array_filter($resources, function ($resource) use ($itemSetIDs) {
+                    if ($resource->getResourceName() == 'items') {
+                        foreach ($resource->getItemSets() as $itemSet) {
+                            if (in_array($itemSet->getId(), $itemSetIDs)) {
+                                return false;
                             }
                         }
-                        return true;
-                    });
-                    $resources = $filterSetsResources;
-                    if (empty($resources)) {
-                        continue;
                     }
-                }
-                $filteredResources = array_filter($resources, fn($resource) => in_array($resource->getResourceName(), $searchIndexSettings['resources']));
-                if (empty($filteredResources)) {
+                    return true;
+                });
+                $resources = $filterSetsResources;
+                if (empty($resources)) {
                     continue;
                 }
-
-                try {
-                    $indexer = $searchIndex->indexer();
-                    $indexer->indexResources($filteredResources);
-                } catch (\Exception $e) {
-                    $logger->err(sprintf('Search: failed to index resources: %s', $e));
-                }
             }
-        } else {
-            $ids = array_map(fn($resource) => $resource->getId(), $resources);
-            $jobDispatcher->dispatch(Job\UpdateIndex::class, ['ids' => $ids]);
+            $filteredResources = array_filter($resources, fn($resource) => in_array($resource->getResourceName(), $searchIndexSettings['resources']));
+            if (empty($filteredResources)) {
+                continue;
+            }
+
+            try {
+                $indexer = $searchIndex->indexer();
+                $indexer->indexResources($filteredResources);
+            } catch (\Exception $e) {
+                $logger->err(sprintf('Search: failed to index resources: %s', $e));
+            }
         }
     }
 }
