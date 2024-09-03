@@ -141,6 +141,8 @@ class IndexController extends AbstractActionController
             $name = $facet['name'];
             if (array_key_exists($name, $facetCounts)) {
                 $facets[$name] = $facetCounts[$name];
+            } else {
+                $facets[$name] = [];
             }
         }
         // Remove facets that are all the results
