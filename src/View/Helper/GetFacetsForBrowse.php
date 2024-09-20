@@ -72,8 +72,10 @@ class GetFacetsForBrowse extends AbstractHelper
                 $facets = [];
                 foreach ($settings['facets'] as $facet) {
                     $name = $facet['name'];
-                    if (array_key_exists($name, $facetCounts) && $facetCounts[$name]) {
+                    if (array_key_exists($name, $facetCounts)) {
                         $facets[$name] = $facetCounts[$name];
+                    } else {
+                        $facets[$name] = [];
                     }
                 }
                 $totalResults = $response->getTotalResults();
