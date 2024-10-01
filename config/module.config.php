@@ -272,6 +272,7 @@ return [
             'facetLink' => View\Helper\FacetLink::class,
             'searchForm' => View\Helper\SearchForm::class,
             'getFacetsForBrowse' => View\Helper\GetFacetsForBrowse::class,
+            'getCountForQuery' => View\Helper\GetCountForQuery::class,
             'getSearchFormForSite' => View\Helper\GetSearchFormForSite::class,
             'showSavedQueries' => View\Helper\ShowSavedQueries::class,
             'formFields' => Form\View\Helper\FormFields::class,
