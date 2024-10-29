@@ -50,7 +50,6 @@ class GetCountForQuery extends AbstractHelper
                 } catch (QuerierException $e) {
                     return null;
                 }
-                echo $response->getTotalResults();
                 return $response->getTotalResults();
             }
         }
