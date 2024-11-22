@@ -114,6 +114,10 @@ class IndexController extends AbstractActionController
 
         if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
             $query->setIsPublic(true);
+            $user = $this->identity();
+            if ($user && $this->getPluginManager()->has('listGroups')) {
+                $query->setGroups($this->listGroups($this->api()->read('users', $user->getId())->getContent(), 'id'));
+            }
         }
 
         $sortOptions = $this->getSortOptions();
@@ -190,6 +194,7 @@ class IndexController extends AbstractActionController
                         $resource_name_field = $solrNodeSettings['resource_name_field'];
                         $sites_field = $solrNodeSettings['sites_field'];
                         $is_public_field = $solrNodeSettings['is_public_field'];
+                        $groups_field = $solrNodeSettings['groups_field'];
                         $resources = $indexSettings['resources'];
                         $client = new SolrClient($solrNode->clientSettings());
                         $solrQuery = new SolrQuery;
@@ -198,8 +203,17 @@ class IndexController extends AbstractActionController
                         $solrQuery->addFilterQuery($fq);
                         if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
                             $fq = sprintf('%s:%s', $is_public_field, 'true');
+                            $user = $this->identity();
+                            if ($user && $this->getPluginManager()->has('listGroups')) {
+                                $groups = $this->listGroups($this->api()->read('users', $user->getId())->getContent(), 'id');
+                                if (isset($groups)) {
+                                    foreach ($groups as $group) {
+                                        $fq = sprintf('%s OR %s:%s', $fq, $groups_field, $group);
+                                    }
+                                }
+                            }
+                            $solrQuery->addFilterQuery($fq);
                         }
-                        $solrQuery->addFilterQuery($fq);
                         $fq = sprintf('%s:(%s)', $resource_name_field, implode(' OR ', $resources));
                         $solrQuery->addFilterQuery($fq);
                         $solrQuery->setFacet(true);
@@ -213,7 +227,7 @@ class IndexController extends AbstractActionController
                         try {
                             $solrQueryResponse = $client->query($solrQuery);
                         } catch (SolrClientException $e) {
-                            throw new QuerierException($e->getMessage(), $e->getCode(), $e);
+                            throw new QuerierException($e->getMessage(), $e->getCode(), $e->getPrevious());
                         }
                         $solrResponse = $solrQueryResponse->getResponse();
                         $formattedArray = array();

@@ -20,7 +20,6 @@ class GetFacetsForBrowse extends AbstractHelper
         $site = $view->currentSite();
         $currentSiteID = $site->id();
         $api = $view->plugin('api');
-        $userIsAllowed = $view->plugin('userIsAllowed');
         $searchPages = $api->search('search_pages')->getContent();
         foreach ($searchPages as $searchPage) {
             if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
@@ -58,8 +57,11 @@ class GetFacetsForBrowse extends AbstractHelper
                     $query->addStatField($name);
                 }
                 $query->setSite($site);
-                if (!$userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
+                if (!$view->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
                     $query->setIsPublic(true);
+                    if ($view->getHelperPluginManager()->has('groupsForCurrentUser')) {
+                        $query->setGroups($view->groupsForCurrentUser());
+                    }
                 }
                 // Set limit to 0 because we only need facets in results
                 $query->setLimitPage(1, 0);

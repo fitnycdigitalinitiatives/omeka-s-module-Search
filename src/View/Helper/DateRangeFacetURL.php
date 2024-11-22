@@ -7,6 +7,8 @@ use Laminas\Mvc\Application;
 
 class DateRangeFacetURL extends AbstractHelper
 {
+    protected $application;
+
     public function __construct(Application $application)
     {
         $this->application = $application;

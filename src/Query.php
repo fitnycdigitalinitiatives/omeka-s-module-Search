@@ -41,11 +41,12 @@ class Query
     protected $queryFilters = [];
     protected $dateRangeFilters = [];
     protected $statFields = [];
-    protected $offset = 0 ;
+    protected $offset = 0;
     protected $limit = 0;
     protected $resources = [];
     protected $site;
     protected $isPublic;
+    protected $groups = [];
 
     public function setQuery($query)
     {
@@ -95,6 +96,16 @@ class Query
     public function getIsPublic(): ?bool
     {
         return $this->isPublic;
+    }
+
+    public function setGroups($groups)
+    {
+        $this->groups = $groups;
+    }
+
+    public function getGroups()
+    {
+        return $this->groups;
     }
 
     public function addFacetFilter($name, $value)
