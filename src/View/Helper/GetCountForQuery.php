@@ -3,7 +3,6 @@
 namespace Search\View\Helper;
 
 use Laminas\View\Helper\AbstractHelper;
-use Search\Query;
 use Search\Querier\Exception\QuerierException;
 
 class GetCountForQuery extends AbstractHelper
@@ -34,6 +33,9 @@ class GetCountForQuery extends AbstractHelper
                 $query->setSite($site);
                 if (!$userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
                     $query->setIsPublic(true);
+                    if ($view->getHelperPluginManager()->has('groupsForCurrentUser')) {
+                        $query->setGroups($view->groupsForCurrentUser());
+                    }
                 }
                 if (isset($searchQuery['limit'])) {
                     foreach ($searchQuery['limit'] as $name => $values) {
