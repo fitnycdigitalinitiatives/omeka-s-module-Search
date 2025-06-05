@@ -65,9 +65,9 @@ class IndexController extends AbstractActionController
         $session = $sessionManager->getStorage();
         $site_slug = $this->currentSite()->slug();
         $turnstileAuth = $session->offsetGet($site_slug . '_turnstile_authorization');
-        // if ($this->settings()->get('search_module_activate_turnstile', false) && !$this->auth->hasIdentity() && !$turnstileAuth) {
-        //     return $this->redirect()->toRoute('site/challenge', ['site-slug' => $this->currentSite()->slug()], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
-        // }
+        if ($this->settings()->get('search_module_activate_turnstile', false) && !$this->auth->hasIdentity() && !$turnstileAuth) {
+            return $this->redirect()->toRoute('site/challenge', ['site-slug' => $this->currentSite()->slug()], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
+        }
         $this->page = $this->getSearchPage();
         $index_id = $this->page->index()->id();
 
