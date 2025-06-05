@@ -237,6 +237,7 @@ class Module extends AbstractModule
         }
         $formData = $form->getData();
         $settings->set('search_module_activate_turnstile', $formData['activate_turnstile']);
+        $settings->set('search_module_turnstile_secret_key', $formData['turnstile_secret_key']);
         return true;
     }
 
