@@ -1,0 +1,36 @@
+<?php
+$this->htmlElement('body')->appendAttribute('class', 'challenge');
+$this->headScript()->appendFile($this->assetUrl('js/challenge.js', 'Search'));
+$this->headScript()->appendFile('https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback', 'text/javascript');
+$escape = $this->plugin('escapeHtml');
+
+?>
+<div id="challenge-page" style="display: none">
+    <!-- Modal -->
+    <div class="modal fade" id="challengeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="challengeLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border">
+                <div class="modal-body p-4 p-lg-5">
+                    <div class="container-fluid p-0">
+                        <div class="row">
+                            <div class="col" id="challenge-head">
+                                <h1 class="text-center" id="challengeLabel">
+                                    Checking if you're a bot...
+                                </h1>
+                            </div>
+                        </div>
+                        <div class="my-3" id="turnstile-container" data-size="flexible" data-redirect="<?php echo $escape($redirect_url); ?>">
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <p id="challengeRights">
+                                    The FIT Library is happy to openly share our data where possible, but recent behavior by bots has caused our site's performance to suffer. If you would like to request bulk access to our data, please contact us at <a href="mailto:repository@fitnyc.edu">repository@fitnyc.edu</a>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
