@@ -1,12 +1,11 @@
 <?php
-
 namespace Search;
 
 return [
     'controllers' => [
         'invokables' => [
+            'Search\Controller\Index' => Controller\IndexController::class,
             'Search\Controller\SavedQuery' => Controller\SavedQueryController::class,
-            'Search\Controller\Challenge' => Controller\ChallengeController::class,
             'Search\Controller\Admin\Index' => Controller\Admin\IndexController::class,
             'Search\Controller\Admin\Facets' => Controller\Admin\FacetsController::class,
             'Search\Controller\Admin\FormElements' => Controller\Admin\FormElementsController::class,
@@ -14,7 +13,6 @@ return [
             'Search\Controller\Admin\SortFields' => Controller\Admin\SortFieldsController::class,
         ],
         'factories' => [
-            'Search\Controller\Index' => Service\Controller\IndexControllerFactory::class,
             'Search\Controller\Admin\SearchIndex' => Service\Controller\Admin\SearchIndexControllerFactory::class,
             'Search\Controller\Admin\SearchPage' => Service\Controller\Admin\SearchPageControllerFactory::class,
 
@@ -100,32 +98,13 @@ return [
                         'type' => 'Segment',
                         'options' => [
                             'route' => '/search/suggester.json',
+                            'constraints' => [
+                                'page-id' => '\d+',
+                            ],
                             'defaults' => [
                                 '__NAMESPACE__' => 'Search\Controller',
                                 'controller' => 'Index',
                                 'action' => 'suggester',
-                            ],
-                        ],
-                    ],
-                    'challenge' => [
-                        'type' => 'Segment',
-                        'options' => [
-                            'route' => '/challenge',
-                            'defaults' => [
-                                '__NAMESPACE__' => 'Search\Controller',
-                                'controller' => 'Challenge',
-                                'action' => 'challenge',
-                            ],
-                        ],
-                    ],
-                    'verification' => [
-                        'type' => 'Segment',
-                        'options' => [
-                            'route' => '/challenge/verification',
-                            'defaults' => [
-                                '__NAMESPACE__' => 'Search\Controller',
-                                'controller' => 'Challenge',
-                                'action' => 'verification',
                             ],
                         ],
                     ],

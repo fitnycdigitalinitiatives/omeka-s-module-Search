@@ -31,8 +31,6 @@ namespace Search\Controller;
 
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\ViewModel;
-use Laminas\Session\Container;
-use Laminas\Authentication\AuthenticationService;
 use Omeka\Mvc\Exception\RuntimeException;
 use Omeka\Stdlib\Paginator;
 use Search\Querier\Exception\QuerierException;
@@ -45,29 +43,8 @@ class IndexController extends AbstractActionController
     protected $page;
     protected $index;
 
-    /**
-     * @var AuthenticationService
-     */
-    protected $auth;
-
-    /**
-     * @param AuthenticationService $auth
-     */
-
-    public function __construct(AuthenticationService $auth)
-    {
-        $this->auth = $auth;
-    }
-
     public function searchAction()
     {
-        $sessionManager = Container::getDefaultManager();
-        $session = $sessionManager->getStorage();
-        $site_slug = $this->currentSite()->slug();
-        $turnstileAuth = $session->offsetGet($site_slug . '_turnstile_authorization');
-        if ($this->settings()->get('search_module_activate_turnstile', false) && !$this->auth->hasIdentity() && !$turnstileAuth) {
-            return $this->redirect()->toRoute('site/challenge', ['site-slug' => $this->currentSite()->slug()], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
-        }
         $this->page = $this->getSearchPage();
         $index_id = $this->page->index()->id();
 
