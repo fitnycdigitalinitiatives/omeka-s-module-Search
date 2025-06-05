@@ -1,7 +1,7 @@
 <?php
 $this->htmlElement('body')->appendAttribute('class', 'challenge');
 $this->headScript()->appendFile($this->assetUrl('js/challenge.js', 'Search'));
-$this->headScript()->appendFile('https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback', 'text/javascript');
+$this->headScript()->appendFile('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', 'text/javascript');
 $escape = $this->plugin('escapeHtml');
 
 ?>
