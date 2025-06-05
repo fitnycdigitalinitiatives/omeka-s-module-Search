@@ -34,7 +34,10 @@ use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\EventManager\Event;
 use Laminas\Mvc\MvcEvent;
 use Laminas\ServiceManager\ServiceLocatorInterface;
+use Laminas\View\Renderer\PhpRenderer;
+use Laminas\Mvc\Controller\AbstractController;
 use Omeka\Module\AbstractModule;
+use Search\Form\ConfigForm;
 use Composer\Semver\Comparator;
 
 class Module extends AbstractModule
@@ -57,6 +60,7 @@ class Module extends AbstractModule
         $acl->allow(null, 'Search\Entity\SavedQuery', 'create');
         $acl->allow(null, 'Search\Entity\SavedQuery', 'delete');
         $acl->allow(null, 'Search\Controller\Index');
+        $acl->allow(null, 'Search\Controller\Challenge');
         $acl->allow(null, 'Search\Controller\SavedQuery');
     }
 
@@ -207,6 +211,33 @@ class Module extends AbstractModule
         $connection->exec('DROP TABLE IF EXISTS saved_query');
         $connection->exec('DROP TABLE IF EXISTS search_page');
         $connection->exec('DROP TABLE IF EXISTS search_index');
+    }
+
+    public function getConfigForm(PhpRenderer $renderer)
+    {
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $form = new ConfigForm;
+        $form->init();
+        $form->setData([
+            'activate_turnstile' => $settings->get('search_module_activate_turnstile'),
+            'turnstile_secret_key' => $settings->get('search_module_turnstile_secret_key'),
+        ]);
+        return $renderer->formCollection($form);
+    }
+
+    public function handleConfigForm(AbstractController $controller)
+    {
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $form = new ConfigForm;
+        $form->init();
+        $form->setData($controller->params()->fromPost());
+        if (!$form->isValid()) {
+            $controller->messenger()->addErrors($form->getMessages());
+            return false;
+        }
+        $formData = $form->getData();
+        $settings->set('search_module_activate_turnstile', $formData['activate_turnstile']);
+        return true;
     }
 
     public function attachListeners(SharedEventManagerInterface $sharedEventManager)
