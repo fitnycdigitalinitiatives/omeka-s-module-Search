@@ -6,7 +6,7 @@ use Laminas\View\Helper\AbstractHelper;
 
 class GetSearchFormForSite extends AbstractHelper
 {
-    public function __invoke($site)
+    public function __invoke($site, $partial = null)
     {
         $api = $this->getView()->plugin('api');
         $searchPages = $api->search('search_pages')->getContent();
@@ -14,7 +14,7 @@ class GetSearchFormForSite extends AbstractHelper
         foreach ($searchPages as $searchPage) {
             if (array_key_exists('site', $searchPage->settings()) && ($currentSiteID == $searchPage->settings()['site'])) {
                 $searchForm = $this->getView()->plugin('searchForm');
-                return $searchForm($searchPage);
+                return $searchForm($searchPage, $partial);
             }
         }
         return null;

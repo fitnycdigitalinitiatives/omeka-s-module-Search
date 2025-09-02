@@ -8,12 +8,14 @@ class SearchForm extends AbstractHelper
 {
     protected $searchPage;
     protected $form;
+    protected $partial;
 
-    public function __invoke($searchPage = null)
+    public function __invoke($searchPage = null, $partial = null)
     {
         if (isset($searchPage)) {
             $this->searchPage = $searchPage;
             $this->form = null;
+            $this->partial = $partial;
         }
 
         return $this;
@@ -22,8 +24,12 @@ class SearchForm extends AbstractHelper
     public function __toString()
     {
         $view = $this->getView();
+        if ($this->partial) {
+            $formPartial = $this->partial;
+        } else {
+            $formPartial = $this->getFormPartial();
+        }
 
-        $formPartial = $this->getFormPartial();
         $form = $this->getForm();
 
         return $view->partial($formPartial, ['form' => $form]);

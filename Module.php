@@ -248,12 +248,14 @@ class Module extends AbstractModule
             $sharedEventManager->attach(
                 $identifier,
                 'api.update.post',
-                [$this, 'onResourceUpdatePost']
+                [$this, 'onResourceUpdatePost'],
+                -1
             );
             $sharedEventManager->attach(
                 $identifier,
                 'api.create.post',
-                [$this, 'onResourceCreatePost']
+                [$this, 'onResourceCreatePost'],
+                -1
             );
             $sharedEventManager->attach(
                 $identifier,
