@@ -147,6 +147,8 @@ class IndexController extends AbstractActionController
 
         if (isset($params['sort'])) {
             $sort = $params['sort'];
+        } elseif (isset($params['q']) && !empty($params['q'])) {
+            $sort = "score desc";
         } else {
             reset($sortOptions);
             $sort = key($sortOptions);
