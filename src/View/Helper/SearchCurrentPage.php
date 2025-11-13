@@ -11,7 +11,15 @@ class SearchCurrentPage extends AbstractHelper
 
     public function __invoke(): SearchPageRepresentation
     {
-        return $this->searchPage;
+        $view = $this->getView();
+        $api = $view->plugin('api');
+        $searchPages = $api->search('search_pages')->getContent();
+        $currentSiteID = $view->currentSite()->id();
+        foreach ($searchPages as $thisSearchPage) {
+            if (array_key_exists('site', $thisSearchPage->settings()) && ($currentSiteID == $thisSearchPage->settings()['site'])) {
+                return $thisSearchPage;
+            }
+        }
     }
 
     public function setSearchPage(SearchPageRepresentation $searchPage)

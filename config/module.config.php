@@ -321,6 +321,7 @@ return [
     'search_facet_value_renderers' => [
         'invokables' => [
             'fallback' => FacetValueRenderer\Fallback::class,
+            'color' => FacetValueRenderer\Color::class,
         ],
         'factories' => [
             'resource_title' => Service\FacetValueRenderer\ResourceTitleFactory::class,
