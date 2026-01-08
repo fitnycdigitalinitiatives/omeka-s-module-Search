@@ -105,6 +105,15 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
         ]);
 
         $this->add([
+            'name' => 'facet_stats',
+            'type' => 'Checkbox',
+            'options' => [
+                'label' => $translator->translate('Facet stats (for pagination)'),
+                'info' => $translator->translate('Get total count of all facets for a field, required for pagination.'),
+            ],
+        ]);
+
+        $this->add([
             'name' => 'date_range_facet_field',
             'type' => 'Text',
             'options' => [
@@ -114,6 +123,18 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
             ],
             'attributes' => [
                 'placeholder' => 'dcterms_date_ss',
+            ],
+        ]);
+        $this->add([
+            'name' => 'date_range_facet_field_insert',
+            'type' => 'Select',
+            'options' => [
+                'label' => 'Date range facet field placement', // @translate
+                'info' => 'Select a facet field to place the Date range facet after; if not set, it will be set first. Must be configured in theme.',
+                'value_options' => array_merge(["first" => "Set as first"], $facetValueOptions),
+            ],
+            'attributes' => [
+                'required' => false,
             ],
         ]);
 

@@ -36,13 +36,16 @@ class Query
     protected $query;
     protected $sort;
     protected $facetLimit;
+    protected $facetStats = false;
     protected $facetFields = [];
     protected $facetFilters = [];
     protected $queryFilters = [];
     protected $dateRangeFilters = [];
-    protected $statFields = [];
+    protected $dateFacetStatField = "";
     protected $offset = 0;
     protected $limit = 0;
+    protected $facetOffset;
+    protected $facetSort;
     protected $resources = [];
     protected $site;
     protected $isPublic;
@@ -66,6 +69,16 @@ class Query
     public function getFacetLimit()
     {
         return $this->facetLimit;
+    }
+
+    public function setFacetStatsEnabled($facetStats)
+    {
+        $this->facetStats = $facetStats;
+    }
+
+    public function getFacetStatsEnabled()
+    {
+        return $this->facetStats;
     }
 
     public function addFacetField($field)
@@ -141,14 +154,14 @@ class Query
         return $this->dateRangeFilters;
     }
 
-    public function addStatField($name)
+    public function setDateFacetStatField($name)
     {
-        array_push($this->statFields, $name);
+        $this->dateFacetStatField = $name;
     }
 
-    public function getStatFields()
+    public function getDateFacetStatField()
     {
-        return $this->statFields;
+        return $this->dateFacetStatField;
     }
 
     public function setSort($sort)
@@ -171,10 +184,30 @@ class Query
         return $this->limit;
     }
 
+    public function setFacetOffset($facetOffset)
+    {
+        $this->facetOffset = $facetOffset;
+    }
+
+    public function getFacetOffset()
+    {
+        return $this->facetOffset;
+    }
+
+    public function setFacetSort($sort)
+    {
+        $this->facetSort = $sort;
+    }
+
+    public function getFacetSort()
+    {
+        return $this->facetSort;
+    }
+
     public function setLimitPage($page, $rowCount)
     {
         $page = ($page > 0) ? $page : 1;
-        $rowCount = ($rowCount > 0) ? $rowCount : 1;
+        $rowCount = ($rowCount >= 0) ? $rowCount : 1;
         $this->limit = (int) $rowCount;
         $this->offset = (int) $rowCount * ($page - 1);
     }

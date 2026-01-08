@@ -54,7 +54,7 @@ class GetFacetsForBrowse extends AbstractHelper
                     $query->setFacetLimit($settings['facet_limit']);
                 }
                 if ($name = $settings['date_range_facet_field']) {
-                    $query->addStatField($name);
+                    $query->setDateFacetStatField($name);
                 }
                 $query->setSite($site);
                 if (!$view->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {

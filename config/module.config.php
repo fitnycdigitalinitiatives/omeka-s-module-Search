@@ -107,6 +107,17 @@ return [
                             ],
                         ],
                     ],
+                    'facet' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/search/facet',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller',
+                                'controller' => 'Index',
+                                'action' => 'facet',
+                            ],
+                        ],
+                    ],
                     'challenge' => [
                         'type' => 'Segment',
                         'options' => [

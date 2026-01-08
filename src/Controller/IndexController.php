@@ -63,10 +63,11 @@ class IndexController extends AbstractActionController
     {
         $sessionManager = Container::getDefaultManager();
         $session = $sessionManager->getStorage();
-        $site_slug = $this->currentSite()->slug();
+        $site = $this->currentSite();
+        $site_slug = $site->slug();
         $turnstileAuth = $session->offsetGet($site_slug . '_turnstile_authorization');
         if ($this->settings()->get('search_module_activate_turnstile', false) && !$this->auth->hasIdentity() && !$turnstileAuth) {
-            return $this->redirect()->toRoute('site/challenge', ['site-slug' => $this->currentSite()->slug()], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
+            return $this->redirect()->toRoute('site/challenge', ['site-slug' => $site_slug], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
         }
         $this->page = $this->getSearchPage();
         $index_id = $this->page->index()->id();
@@ -74,7 +75,6 @@ class IndexController extends AbstractActionController
         $form = $this->searchForm($this->page);
 
         $view = new ViewModel;
-        $site = $this->currentSite();
         $params = $this->params()->fromQuery();
 
         $form->setData($params);
@@ -121,6 +121,10 @@ class IndexController extends AbstractActionController
             $query->setFacetLimit($settings['facet_limit']);
         }
 
+        if (isset($settings['facet_stats'])) {
+            $query->setFacetStatsEnabled($settings['facet_stats']);
+        }
+
         if (isset($params['limit'])) {
             foreach ($params['limit'] as $name => $values) {
                 foreach ($values as $value) {
@@ -130,10 +134,10 @@ class IndexController extends AbstractActionController
         }
 
         if ($name = $settings['date_range_facet_field']) {
-            $query->addStatField($name);
+            $query->setDateFacetStatField($name);
         }
 
-        $query->setSite($this->currentSite());
+        $query->setSite($site);
 
         if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
             $query->setIsPublic(true);
@@ -184,6 +188,7 @@ class IndexController extends AbstractActionController
             }
         }
         $dateFacetStats = $response->getDateFacetStats();
+        $facetPagination = $response->getFacetPagination();
         $saveQueryParam = $this->page->settings()['save_queries'] ?? false;
 
         $queryParams = json_encode($this->params()->fromQuery());
@@ -198,13 +203,130 @@ class IndexController extends AbstractActionController
         $view->setVariable('response', $response);
         $view->setVariable('facets', $facets);
         $view->setVariable('dateFacetStats', $dateFacetStats);
+        $view->setVariable('dateFacetStatsPlacement', (isset($settings['date_range_facet_field_insert'])) ? $settings['date_range_facet_field_insert'] : "");
+        $view->setVariable('facetPagination', $facetPagination);
         $view->setVariable('saveQueryParam', $saveQueryParam);
         $view->setVariable('sortOptions', $sortOptions);
         $view->setVariable('queryParams', $queryParams);
         $view->setVariable('searchPageId', $searchPageId);
+        $view->setVariable('searchPageId', $searchPageId);
 
         return $view;
     }
+
+    public function facetAction()
+    {
+        $response = $this->getResponse();
+        $response->getHeaders()->addHeaderLine('Content-Type', 'application/json');
+        $response->setStatusCode(500);
+        $data = ['error' => 'parameters invalid'];
+        $sessionManager = Container::getDefaultManager();
+        $session = $sessionManager->getStorage();
+        $site = $this->currentSite();
+        $site_slug = $site->slug();
+        $turnstileAuth = $session->offsetGet($site_slug . '_turnstile_authorization');
+        if ($this->settings()->get('search_module_activate_turnstile', false) && !$this->auth->hasIdentity() && !$turnstileAuth) {
+            return $this->redirect()->toRoute('site/challenge', ['site-slug' => $site_slug], ['query' => ['redirect_url' => $this->getRequest()->getUriString()]]);
+        }
+        $params = $this->params()->fromQuery();
+        if (array_key_exists('facet_name', $params) && ($facet_name = $params['facet_name']) && array_key_exists('facet_page', $params) && ($facet_page = $params['facet_page']) && is_numeric($facet_page) && array_key_exists('per_page', $params) && ($per_page = $params['per_page']) && is_numeric($per_page) && array_key_exists('sort', $params) && ($sort = $params['sort']) && (($sort == 'count') || ($sort == 'index'))) {
+            $this->page = $this->getSearchPage();
+            $index_id = $this->page->index()->id();
+            $searchPageSettings = $this->page->settings();
+            $searchFormSettings = [];
+            if (isset($searchPageSettings['form'])) {
+                $searchFormSettings = $searchPageSettings['form'];
+            }
+
+            $formAdapter = $this->page->formAdapter();
+            if (isset($formAdapter)) {
+                $query = $formAdapter->toQuery($params, $searchFormSettings);
+                $this->index = $this->api()->read('search_indexes', $index_id)->getContent();
+                $indexSettings = $this->index->settings();
+                if (array_key_exists('resource_type', $params)) {
+                    $resource_type = $params['resource_type'];
+                    if (!is_array($resource_type)) {
+                        $resource_type = [$resource_type];
+                    }
+                    $query->setResources($resource_type);
+                } else {
+                    $query->setResources($indexSettings['resources']);
+                }
+                $query->addFacetField($facet_name);
+                $query->setFacetLimit($per_page);
+                $facet_offset = $per_page * ($facet_page - 1);
+                $query->setFacetOffset($facet_offset);
+                $query->setFacetSort($sort);
+
+                if (isset($params['limit'])) {
+                    foreach ($params['limit'] as $name => $values) {
+                        foreach ($values as $value) {
+                            $query->addFacetFilter($name, $value);
+                        }
+                    }
+                }
+
+                $query->setSite($site);
+
+                if (!$this->userIsAllowed('Omeka\Entity\Resource', 'view-all')) {
+                    $query->setIsPublic(true);
+                    $user = $this->identity();
+                    if ($user && $this->getPluginManager()->has('listGroups')) {
+                        $query->setGroups($this->listGroups($this->api()->read('users', $user->getId())->getContent(), 'id'));
+                    }
+                }
+
+                $query->setLimitPage(1, 0);
+
+                try {
+                    $querier = $this->index->querier();
+                    $queryResponse = $querier->query($query);
+                } catch (QuerierException $e) {
+                    $data = ['error' => $e->getMessage()];
+                    $response->setContent(json_encode($data));
+                    return $response;
+                }
+
+                $data = [];
+                $facetCounts = $queryResponse->getFacetCounts();
+
+                $facet_query_keys = ['facet_name', 'facet_page', 'per_page', 'sort'];
+                // Remove facets that are all the results
+                $totalResults = $queryResponse->getTotalResults();
+                foreach ($facetCounts as $facetName => $facetsSet) {
+                    foreach ($facetsSet as $facetsSetKey => $facetArray) {
+                        if ($facetArray["count"] != $totalResults) {
+                            $newQuery = $params;
+                            if (isset($newQuery['limit'][$facet_name]) && false !== array_search($facetArray['value'], $newQuery['limit'][$facet_name])) {
+                                $values = $newQuery['limit'][$facet_name];
+                                $values = array_filter($values, function ($v) use ($facetArray) {
+                                    return $v != $facetArray['value'];
+                                });
+                                $newQuery['limit'][$facet_name] = $values;
+                                $active = true;
+                            } else {
+                                $newQuery['limit'][$facet_name][] = $facetArray['value'];
+                            }
+                            unset($newQuery['page']);
+                            foreach ($facet_query_keys as $remove_key) {
+                                unset($newQuery[$remove_key]);
+                            }
+                            $facetArray['url'] = $this->url()->fromRoute('site/search', ['__NAMESPACE__' => 'Search\Controller', 'controller' => 'index', 'action' => 'search'], ['query' => $newQuery], true);
+                            $data[] = $facetArray;
+                        }
+                    }
+                }
+
+                $response->setStatusCode(200);
+            } else {
+                $formAdapterName = $this->page->formAdapterName();
+                $data = ['error' => sprintf("Form adapter '%s' not found", $formAdapterName)];
+            }
+        }
+        $response->setContent(json_encode($data));
+        return $response;
+    }
+
     public function suggesterAction()
     {
         $response = $this->getResponse();

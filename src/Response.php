@@ -38,6 +38,7 @@ class Response
     protected $facetCounts = [];
     protected $dateFacetStats = [];
     protected $highlights = [];
+    protected $facetPagination = [];
 
     public function setTotalResults($totalResults)
     {
@@ -84,6 +85,22 @@ class Response
     public function getFacetCounts()
     {
         return $this->facetCounts;
+    }
+
+    public function addFacetPagination($name, $facet_name, $per_page, $total, $current_page, $sort)
+    {
+        $this->facetPagination[$name] = [
+            'facet_name' => $facet_name,
+            'per_page' => $per_page,
+            'total' => $total,
+            'current_page' => $current_page,
+            'sort' => $sort,
+        ];
+    }
+
+    public function getFacetPagination()
+    {
+        return $this->facetPagination;
     }
 
     public function addDateFacetStat($value)
