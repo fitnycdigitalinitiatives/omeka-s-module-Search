@@ -291,6 +291,7 @@ class IndexController extends AbstractActionController
                 $facetCounts = $queryResponse->getFacetCounts();
 
                 $facet_query_keys = ['facet_name', 'facet_page', 'per_page', 'sort'];
+                $searchFacetValue = $this->viewHelpers()->get('searchFacetValue');
                 // Remove facets that are all the results
                 $totalResults = $queryResponse->getTotalResults();
                 foreach ($facetCounts as $facetName => $facetsSet) {
@@ -312,6 +313,7 @@ class IndexController extends AbstractActionController
                                 unset($newQuery[$remove_key]);
                             }
                             $facetArray['url'] = $this->url()->fromRoute('site/search', ['__NAMESPACE__' => 'Search\Controller', 'controller' => 'index', 'action' => 'search'], ['query' => $newQuery], true);
+                            $facetArray['value'] = $searchFacetValue($facet_name, $facetArray['value']);
                             $data[] = $facetArray;
                         }
                     }
