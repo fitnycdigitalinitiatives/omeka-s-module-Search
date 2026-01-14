@@ -62,6 +62,8 @@ class Module extends AbstractModule
         $acl->allow(null, 'Search\Controller\Index');
         $acl->allow(null, 'Search\Controller\Challenge');
         $acl->allow(null, 'Search\Controller\SavedQuery');
+        $acl->allow(null, 'Search\Controller\IiifSearch\v1\IiifSearch');
+        // $acl->allow(null, 'Search\Controller\IiifSearch\v2\IiifSearch');
     }
 
     public function init(ModuleManager $moduleManager)

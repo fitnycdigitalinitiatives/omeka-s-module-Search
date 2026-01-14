@@ -12,6 +12,8 @@ return [
             'Search\Controller\Admin\FormElements' => Controller\Admin\FormElementsController::class,
             'Search\Controller\Admin\SearchFields' => Controller\Admin\SearchFieldsController::class,
             'Search\Controller\Admin\SortFields' => Controller\Admin\SortFieldsController::class,
+            'Search\Controller\IiifSearch\v1\IiifSearch' => Controller\IiifSearch\v1\IiifSearchController::class,
+            // 'Search\Controller\IiifSearch\v2\IiifSearch' => Controller\IiifSearch\v2\IiifSearchController::class,
         ],
         'factories' => [
             'Search\Controller\Index' => Service\Controller\IndexControllerFactory::class,
@@ -83,6 +85,62 @@ return [
     ],
     'router' => [
         'routes' => [
+            'iiif-search-1' => [
+                'type' => 'Literal',
+                'options' => [
+                    'route' => '/iiif-search-1',
+                    'defaults' => [
+                        '__NAMESPACE__' => 'Search\Controller\IiifSearch\v1',
+                        'controller' => 'IiifSearchController',
+                        'action' => 'index',
+                    ],
+                ],
+                'may_terminate' => true,
+                'child_routes' => [
+                    'media' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/media/:media-id',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller\IiifSearch\v1',
+                                'controller' => 'IiifSearchController',
+                                'action' => 'search',
+                            ],
+                        ],
+                        'constraints' => [
+                            'media-id' => '\d+',
+                        ]
+                    ],
+                ],
+            ],
+            // 'iiif-search-2' => [
+            //     'type' => 'Literal',
+            //     'options' => [
+            //         'route' => '/iiif-search-2',
+            //         'defaults' => [
+            //             '__NAMESPACE__' => 'Search\Controller\IiifSearch\v2',
+            //             'controller' => 'IiifSearchController',
+            //             'action' => 'index',
+            //         ],
+            //     ],
+            //     'may_terminate' => true,
+            //     'child_routes' => [
+            //         'media' => [
+            //             'type' => 'Segment',
+            //             'options' => [
+            //                 'route' => '/media/:media-id',
+            //                 'defaults' => [
+            //                     '__NAMESPACE__' => 'Search\Controller\IiifSearch\v2',
+            //                     'controller' => 'IiifSearchController',
+            //                     'action' => 'search',
+            //                 ],
+            //             ],
+            //             'constraints' => [
+            //                 'media-id' => '\d+',
+            //             ]
+            //         ],
+            //     ],
+            // ],
             'site' => [
                 'child_routes' => [
                     'search' => [
