@@ -17,6 +17,7 @@ class IndexOcr extends AbstractJob
     {
         $serviceLocator = $this->getServiceLocator();
         $mediaIdList = $this->getArg('mediaIdList');
+        $solrNodeId = $this->getArg('solrNodeId');
         $logger = $serviceLocator->get('Omeka\Logger');
         $api = $serviceLocator->get('Omeka\ApiManager');
         $settings = $serviceLocator->get('Omeka\Settings');
@@ -24,11 +25,8 @@ class IndexOcr extends AbstractJob
 
         $aws_key = $settings->get('fit_module_aws_key');
         $aws_secret_key = $settings->get('fit_module_aws_secret_key');
-        $solr_host = $settings->get('fit_module_solr_hostname');
-        $solr_port = $settings->get('fit_module_solr_port');
-        $solr_path = $settings->get('fit_module_solr_path');
-        $solr_user = $settings->get('fit_module_solr_login');
-        $solr_password = $settings->get('fit_module_solr_password');
+        $solrNode = $api->read('solr_nodes', $solrNodeId)->getContent();
+        $clientSettings = $solrNode->clientSettings();
 
         $s3Client = new S3MultiRegionClient([
             'version' => 'latest',
@@ -38,11 +36,11 @@ class IndexOcr extends AbstractJob
             ],
         ]);
         $solrClient = new SolrClient([
-            'hostname' => $solr_host,
-            'port' => $solr_port,
-            'path' => $solr_path,
-            'login' => $solr_user,
-            'password' => $solr_password,
+            'hostname' => $clientSettings['hostname'],
+            'port' => $clientSettings['port'],
+            'path' => $clientSettings['solr_ocr_path'],
+            'login' => $clientSettings['login'],
+            'password' => $clientSettings['password'],
             'wt' => 'json',
         ]);
 

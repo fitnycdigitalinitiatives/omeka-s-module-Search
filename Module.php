@@ -39,6 +39,9 @@ use Laminas\Mvc\Controller\AbstractController;
 use Omeka\Module\AbstractModule;
 use Search\Form\ConfigForm;
 use Composer\Semver\Comparator;
+use Omeka\Entity\Item;
+use Omeka\Entity\Media;
+use Omeka\Api\Exception\NotFoundException;
 
 class Module extends AbstractModule
 {
@@ -265,6 +268,36 @@ class Module extends AbstractModule
                 [$this, 'onResourceDeletePost']
             );
         }
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\ItemAdapter',
+            'api.create.post',
+            [$this, 'indexOCR']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\ItemAdapter',
+            'api.update.post',
+            [$this, 'indexOCR']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\MediaAdapter',
+            'api.create.post',
+            [$this, 'indexOCR']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\MediaAdapter',
+            'api.update.post',
+            [$this, 'indexOCR']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\ItemAdapter',
+            'api.delete.pre',
+            [$this, 'deleteOCRindex']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\MediaAdapter',
+            'api.delete.pre',
+            [$this, 'deleteOCRindex']
+        );
     }
 
     public function onResourceUpdatePost(Event $event)
@@ -344,6 +377,99 @@ class Module extends AbstractModule
                 $indexer->indexResources($filteredResources);
             } catch (\Exception $e) {
                 $logger->err(sprintf('Search: failed to index resources: %s', $e));
+            }
+        }
+    }
+
+    /**
+     * Index OCR attached to remote compound objects.
+     *
+     * @param Event $event
+     */
+    public function indexOCR(Event $event)
+    {
+        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+        $solr_nodes = $api->search('solr_nodes')->getContent();
+        foreach ($solr_nodes as $solr_node) {
+            $clientSettings = $solr_node->clientSettings();
+            // Check if valid config 
+            if (array_key_exists('solr_ocr_connection', $clientSettings) && $clientSettings['solr_ocr_connection'] && array_key_exists('solr_ocr_path', $clientSettings) && ($solr_ocr_path = $clientSettings['solr_ocr_path']) && array_key_exists('hostname', $clientSettings) && ($hostname = $clientSettings['hostname']) && array_key_exists('port', $clientSettings) && ($port = $clientSettings['port']) && array_key_exists('login', $clientSettings) && ($login = $clientSettings['login']) && array_key_exists('password', $clientSettings) && ($password = $clientSettings['password'])) {
+                $response = $event->getParam('response');
+                $entity = $response->getContent();
+                $mediaEntityList = [];
+                $mediaIdList = [];
+                if ($entity instanceof Item) {
+                    $mediaEntityList = $entity->getMedia();
+                } elseif ($entity instanceof Media) {
+                    $mediaEntityList = [$entity];
+                }
+
+                foreach ($mediaEntityList as $mediaEntity) {
+                    if (($mediaEntity->getIngester() == 'remoteCompoundObject') && ($data = $mediaEntity->getData()) && (array_key_exists('indexed', $data)) && (!$data['indexed']) && $data['components']) {
+                        foreach ($data['components'] as $component) {
+                            if ($component['ocr']) {
+                                $mediaIdList[] = $mediaEntity->getId();
+                                break;
+                            }
+                        }
+                    }
+                }
+                if ($mediaIdList) {
+                    $jobArgs = [
+                        'mediaIdList' => $mediaIdList,
+                        'solrNodeId' => $solr_node->id(),
+                    ];
+                    $jobDispatcher = $this->getServiceLocator()->get(\Omeka\Job\Dispatcher::class);
+                    $jobDispatcher->dispatch('Search\Job\IndexOcr', $jobArgs);
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Deleted indexed OCR attached to remote compound objects.
+     *
+     * @param Event $event
+     */
+    public function deleteOCRindex(Event $event)
+    {
+        $api = $this->getServiceLocator()->get('Omeka\ApiManager');
+        $solr_nodes = $api->search('solr_nodes')->getContent();
+        foreach ($solr_nodes as $solr_node) {
+            $clientSettings = $solr_node->clientSettings();
+            // Check if valid config 
+            if (array_key_exists('solr_ocr_connection', $clientSettings) && $clientSettings['solr_ocr_connection'] && array_key_exists('solr_ocr_path', $clientSettings) && ($solr_ocr_path = $clientSettings['solr_ocr_path']) && array_key_exists('hostname', $clientSettings) && ($hostname = $clientSettings['hostname']) && array_key_exists('port', $clientSettings) && ($port = $clientSettings['port']) && array_key_exists('login', $clientSettings) && ($login = $clientSettings['login']) && array_key_exists('password', $clientSettings) && ($password = $clientSettings['password'])) {
+                $request = $event->getParam('request');
+                try {
+                    $resource = $api->read($request->getResource(), $request->getId())->getContent();
+                } catch (NotFoundException $e) {
+                    return;
+                }
+
+                $mediaList = [];
+                $mediaIdList = [];
+                if ($resource->getControllerName() == 'item') {
+                    $mediaList = $resource->media();
+                } elseif ($resource->getControllerName() == 'media') {
+                    $mediaList = [$resource];
+                }
+
+                foreach ($mediaList as $media) {
+                    // Check if the media was indexed
+                    if (($media->ingester() == 'remoteCompoundObject') && ($data = $media->mediaData()) && (array_key_exists('indexed', $data)) && ($data['indexed'])) {
+                        $mediaIdList[] = $media->id();
+                    }
+                }
+                if ($mediaIdList) {
+                    $jobArgs = [
+                        'mediaIdList' => $mediaIdList,
+                        'solrNodeId' => $solr_node->id(),
+                    ];
+                    $jobDispatcher = $this->getServiceLocator()->get(\Omeka\Job\Dispatcher::class);
+                    $jobDispatcher->dispatch('Search\Job\DeleteOCRindex', $jobArgs);
+                }
+                break;
             }
         }
     }
