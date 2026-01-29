@@ -1,0 +1,7 @@
+{
+    "require": {
+        "solarium/solarium": "^6.3",
+        "psr/http-message": "^1.0",
+        "symfony/event-dispatcher": "^6.0"
+    }
+}
