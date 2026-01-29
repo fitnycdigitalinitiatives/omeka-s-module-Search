@@ -42,6 +42,10 @@ use Composer\Semver\Comparator;
 use Omeka\Entity\Item;
 use Omeka\Entity\Media;
 use Omeka\Api\Exception\NotFoundException;
+use Solarium\Client as SolariumClient;
+use Solarium\Core\Client\Adapter\Curl;
+use Solarium\Core\Client\Adapter\Http;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class Module extends AbstractModule
 {
@@ -67,10 +71,12 @@ class Module extends AbstractModule
         $acl->allow(null, 'Search\Controller\SavedQuery');
         $acl->allow(null, 'Search\Controller\IiifSearch\v1\IiifSearch');
         // $acl->allow(null, 'Search\Controller\IiifSearch\v2\IiifSearch');
+        // $acl->allow(null, 'Search\Controller\OcrSearch');
     }
 
     public function init(ModuleManager $moduleManager)
     {
+        require_once __DIR__ . '/vendor/autoload.php';
         $event = $moduleManager->getEvent();
         $container = $event->getParam('ServiceManager');
         $serviceListener = $container->get('ServiceListener');
@@ -284,7 +290,12 @@ class Module extends AbstractModule
             [$this, 'indexOCR']
         );
         $sharedEventManager->attach(
-            'Omeka\Api\Adapter\MediaAdapter',
+            'Omeka\Api\Adapter\ItemAdapter',
+            'api.update.post',
+            [$this, 'updateIndexOCR']
+        );
+        $sharedEventManager->attach(
+            'Omeka\Api\Adapter\ItemAdapter',
             'api.update.post',
             [$this, 'indexOCR']
         );
@@ -421,6 +432,93 @@ class Module extends AbstractModule
                     ];
                     $jobDispatcher = $this->getServiceLocator()->get(\Omeka\Job\Dispatcher::class);
                     $jobDispatcher->dispatch('Search\Job\IndexOcr', $jobArgs);
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Updated OCR Index with group, public, site and item set data
+     *
+     * @param Event $event
+     */
+    public function updateIndexOCR(Event $event)
+    {
+        $serviceLocator = $this->getServiceLocator();
+        $api = $serviceLocator->get('Omeka\ApiManager');
+        $solr_nodes = $api->search('solr_nodes')->getContent();
+        foreach ($solr_nodes as $solr_node) {
+            $clientSettings = $solr_node->clientSettings();
+            // Check if valid config 
+            if (array_key_exists('solr_ocr_connection', $clientSettings) && $clientSettings['solr_ocr_connection'] && array_key_exists('solr_ocr_path', $clientSettings) && ($solr_ocr_path = $clientSettings['solr_ocr_path']) && array_key_exists('hostname', $clientSettings) && ($hostname = $clientSettings['hostname']) && array_key_exists('port', $clientSettings) && ($port = $clientSettings['port']) && array_key_exists('login', $clientSettings) && ($login = $clientSettings['login']) && array_key_exists('password', $clientSettings) && ($password = $clientSettings['password'])) {
+                $response = $event->getParam('response');
+                $item = $response->getContent();
+                $indexedMediaList = [];
+
+                foreach ($item->getMedia() as $mediaEntity) {
+                    // Check for media that have already been indexed
+                    if (($mediaEntity->getIngester() == 'remoteCompoundObject') && ($data = $mediaEntity->getData()) && (array_key_exists('indexed', $data)) && ($data['indexed'])) {
+                        $indexedMediaList[] = $mediaEntity;
+                    }
+                }
+                if ($indexedMediaList) {
+                    $adapter = extension_loaded('curl') ? new Curl() : new Http();
+                    $config = array(
+                        'endpoint' => array(
+                            'default' => array(
+                                'host' => $hostname,
+                                'port' => $port,
+                                'path' => '/',
+                                'core' => end(explode("/", $solr_ocr_path)),
+                                'username' => $login,
+                                'password' => $password,
+                            )
+                        )
+                    );
+                    /** @disregard EventDispatcherInterface */
+                    $client = new SolariumClient($adapter, new EventDispatcher(), $config);
+                    $controllerPlugins = $serviceLocator->get('ControllerPluginManager');
+                    $messenger = $controllerPlugins->get('messenger');
+                    $listGroups = null;
+                    if ($controllerPlugins->has('listGroups')) {
+                        $listGroups = $controllerPlugins->get('listGroups');
+                    }
+                    foreach ($indexedMediaList as $mediaEntity) {
+                        $itemSetsIds = [];
+                        foreach ($item->getItemSets() as $itemSet) {
+                            $itemSetsIds[] = $itemSet->getId();
+                        }
+                        $isPublic = ($item->isPublic() && $mediaEntity->isPublic()) ? true : false;
+                        $groups = [];
+                        if ($listGroups) {
+                            $itemRepresentation = $api->read('items', $item->getId())->getContent();
+                            foreach ($listGroups($itemRepresentation, 'id') as $groups_id) {
+                                $groups[] = $groups_id;
+                            }
+                        }
+                        $sites = [];
+                        foreach ($item->getSites() as $site) {
+                            $sites[] = $site->getId();
+                        }
+                        $update = $client->createUpdate();
+                        $doc = $update->createDocument();
+                        $doc->setKey('media_id', $mediaEntity->getId());
+                        $doc->setField('item_set_ids', $itemSetsIds);
+                        $doc->setFieldModifier('item_set_ids', 'set');
+                        $doc->setField('is_public', $isPublic);
+                        $doc->setFieldModifier('is_public', 'set');
+                        $doc->setField('groups', $groups);
+                        $doc->setFieldModifier('groups', 'set');
+                        $doc->setField('sites', $sites);
+                        $doc->setFieldModifier('sites', 'set');
+                        $update->addDocument($doc);
+                        try {
+                            $client->update($update);
+                        } catch (\Exception $e) {
+                            $messenger->addError(sprintf('Search: failed to update OCR index: %s', $e));
+                        }
+                    }
                 }
                 break;
             }

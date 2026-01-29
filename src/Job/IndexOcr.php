@@ -22,6 +22,11 @@ class IndexOcr extends AbstractJob
         $api = $serviceLocator->get('Omeka\ApiManager');
         $settings = $serviceLocator->get('Omeka\Settings');
         $em = $serviceLocator->get('Omeka\EntityManager');
+        $controllerPlugins = $serviceLocator->get('ControllerPluginManager');
+        $listGroups = null;
+        if ($controllerPlugins->has('listGroups')) {
+            $listGroups = $controllerPlugins->get('listGroups');
+        }
 
         $aws_key = $settings->get('fit_module_aws_key');
         $aws_secret_key = $settings->get('fit_module_aws_secret_key');
@@ -49,10 +54,19 @@ class IndexOcr extends AbstractJob
             $media = $api->read('media', $mediaId, [], ['responseContent' => 'resource'])->getContent();
             $item = $media->getItem();
             $itemId = $item->getId();
-            $itemSets = $item->getItemSets();
             $itemSetsIds = [];
-            foreach ($itemSets as $itemSet) {
+            foreach ($item->getItemSets() as $itemSet) {
                 $itemSetsIds[] = $itemSet->getId();
+            }
+            $isPublic = ($item->isPublic() && $media->isPublic()) ? true : false;
+            $groups = [];
+            if ($listGroups) {
+                $itemRepresentation = $api->read('items', $item->getId())->getContent();
+                $groups = $listGroups($itemRepresentation, 'id');
+            }
+            $sites = [];
+            foreach ($item->getSites() as $site) {
+                $sites[] = $site->getId();
             }
             $ocr_url_list = [];
             $media_data = $media->getData();
@@ -91,6 +105,13 @@ class IndexOcr extends AbstractJob
                     $doc->addField('item_id', $itemId);
                     foreach ($itemSetsIds as $itemSetsId) {
                         $doc->addField('item_set_ids', $itemSetsId);
+                    }
+                    $doc->addField('is_public', $isPublic);
+                    foreach ($groups as $group) {
+                        $doc->addField('groups', $group);
+                    }
+                    foreach ($sites as $site) {
+                        $doc->addField('sites', $site);
                     }
                     $doc->addField('ocr_text', $joined_mini_ocr_output);
                     $solrClient->addDocument($doc);
