@@ -209,7 +209,6 @@ class IndexController extends AbstractActionController
         $view->setVariable('sortOptions', $sortOptions);
         $view->setVariable('queryParams', $queryParams);
         $view->setVariable('searchPageId', $searchPageId);
-        $view->setVariable('searchPageId', $searchPageId);
 
         return $view;
     }
@@ -395,7 +394,8 @@ class IndexController extends AbstractActionController
 
     protected function setPagination($query, $page)
     {
-        $per_page = $this->settings()->get('pagination_per_page', Paginator::PER_PAGE);
+        $siteSetting = $this->viewHelpers()->get('siteSetting');
+        $per_page = $siteSetting('pagination_per_page', $this->settings()->get('pagination_per_page', Paginator::PER_PAGE));
         $query->setLimitPage($page, $per_page);
     }
 

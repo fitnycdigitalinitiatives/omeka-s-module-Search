@@ -38,6 +38,7 @@ class IiifSearchController extends AbstractActionController
                 $solrQuery->setHighlightSnippets(4096);
                 $solrQuery->addparam('hl.ocr.fl', 'ocr_text');
                 $solrQuery->addparam('hl.ocr.absoluteHighlights', 'on');
+                $solrQuery->addparam('hl.weightMatches', 'true');
                 $solrQuery->addFilterQuery('media_id:' . $media_id);
                 $solrQuery->addField('media_id');
                 try {

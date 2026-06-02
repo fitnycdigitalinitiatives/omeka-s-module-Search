@@ -1,0 +1,161 @@
+<?php
+// echo json_encode($this->results);
+$this->htmlElement('body')->appendAttribute('class', 'full-text-search resource search');
+$escape = $this->plugin('escapeHtml');
+$api = $this->plugin('api');
+$urlHelper = $this->plugin('url');
+$results = $this->results;
+$totalResults = $this->totalResults;
+$q = $this->q;
+$per_page = $this->per_page;
+$current_page = $this->current_page;
+$facets = $this->facets;
+$item_set_id = $this->item_set_id;
+$current_item_set = null;
+if ($item_set_id) {
+    try {
+        $current_item_set = $api->read('item_sets', $item_set_id)->getContent();
+    } catch (Omeka\Api\Exception\NotFoundException $e) {
+        $current_item_set = null;
+    }
+}
+?>
+
+<div id="grid-header" class="container-fluid py-3">
+    <div class="row">
+        <div class="col">
+            <div class="row" id="results">
+                <div class="col-auto fw-bold fst-italic h2">
+                    Showing
+                    <?php
+                    echo number_format($totalResults);
+                    echo ($totalResults == 1) ? ' item' : ' items';
+                    echo ($q) ? ' for ' : ' total';
+                    ?>
+                </div>
+            </div>
+            <?php if ($queryString = $this->ocrSearchQueryToString($q, $current_item_set)): ?>
+                <div class="row mt-sm-2 mt-md-1">
+                    <div class="col-auto">
+                        <?php echo $queryString; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php if ($facets): ?>
+            <div class="col-12 col-sm-auto mt-3 mt-sm-0">
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-outline-dark rounded-0 border-2 text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="true" aria-label="Filter by collection">
+                        Filter by Collection
+                        <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="bi bi-funnel-fill ms-1" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5z" />
+                        </svg>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end rounded-0 border border-2 border-black" id="sort-dropdown" data-popper-placement="bottom-end">
+                        <?php if ($facets): ?>
+                            <?php if ($current_item_set): ?>
+                                <li>
+                                    <a class="dropdown-item d-flex justify-content-between align-items-center fw-bold disabled">
+                                        <?php echo $current_item_set->displayTitle(); ?>
+                                        <span class="badge text-bg-light rounded-pill fw-normal ms-2">
+                                            <?php echo $totalResults; ?>
+                                        </span>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php
+                            foreach ($facets as $facet):
+                                $this_item_set = null;
+                                try {
+                                    $this_item_set = $api->read('item_sets', $facet['item_set_id'])->getContent();
+                                } catch (Omeka\Api\Exception\NotFoundException $e) {
+                                    $this_item_set = null;
+                                }
+                            ?>
+                                <?php
+                                if ($this_item_set):
+                                    $this_query = ['item_set_id' => $this_item_set->id()];
+                                    if ($q) {
+                                        $this_query['q'] = $q;
+                                    }
+                                    $this_url = $urlHelper('site/ocrsearch', [], ['query' => $this_query], true);
+                                ?>
+                                    <li>
+                                        <a class="dropdown-item d-flex justify-content-between align-items-center fw-bold" href="<?php echo $this_url; ?>">
+                                            <?php echo $this_item_set->displayTitle(); ?>
+                                            <span class="badge text-bg-light rounded-pill fw-normal ms-2">
+                                                <?php echo $facet['count']; ?>
+                                            </span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+<div id="grid" class="container-fluid mb-5">
+    <?php if ($totalResults > 0): ?>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 <?php echo ($q ? "snippets" : "align-items-center") ?>" id="grid-row">
+            <?php
+            foreach ($results as $result):
+                // Need to make sure the item actually exists because it can show up in the index a few minutes after it's been deleted         
+                try {
+                    $item = $api->read('items', $result['item_id'])->getContent();
+                } catch (Omeka\Api\Exception\NotFoundException $e) {
+                    $item = null;
+                }
+
+            ?>
+                <?php
+                if ($item):
+                    $title = $item->displayTitle();
+                    if ($q) {
+                        $url = $item->url() . '?ocr_text=' . $q . '&media_id=' . $result['media_id'] . '&page_id=' . $result['snippet_page'];
+                        $snippet_text = $result['snippet_text'];
+                    } else {
+                        $url = $item->url();
+                        $snippet_text = null;
+                    }
+                ?>
+                    <div class="col grid-item-container">
+                        <div class="card border-0 grid-item bg-transparent">
+                            <a href="<?php echo $url; ?>" class="card-img rounded-0" title="<?php echo $title; ?>">
+                                <?php echo $this->thumbnail($item, 'medium', ['class' => 'w-100 rounded-0 border border-2 border-white', 'alt' => $title]); ?>
+                            </a>
+                            <div class="card-body">
+                                <h3 class="grid-item-title">
+                                    <a href="<?php echo $url; ?>" class="text-dark text-decoration-none" title="<?php echo $title; ?>">
+                                        <?php echo $title; ?>
+                                    </a>
+                                </h3>
+                                <?php if ($snippet_text): ?>
+                                    <div class="snippet ps-2 border-start border-secondary-subtle border-5 mt-3">
+                                        ...<?php echo $snippet_text; ?>...
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+        <div class="row justify-content-center pagination-row d-none">
+            <div class="col-auto">
+                <?php echo $this->pagination(null, $totalResults, $current_page, $per_page); ?>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="row">
+            <div class="col px-sm-5">
+                <p class="lead">
+                    We're sorry, but your search did not return any results. Please try searching again, or browsing through the items or collections.
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>

@@ -17,6 +17,7 @@ return [
         ],
         'factories' => [
             'Search\Controller\Index' => Service\Controller\IndexControllerFactory::class,
+            'Search\Controller\OcrSearch' => Service\Controller\OcrSearchControllerFactory::class,
             'Search\Controller\Admin\SearchIndex' => Service\Controller\Admin\SearchIndexControllerFactory::class,
             'Search\Controller\Admin\SearchPage' => Service\Controller\Admin\SearchPageControllerFactory::class,
 
@@ -173,6 +174,28 @@ return [
                                 '__NAMESPACE__' => 'Search\Controller',
                                 'controller' => 'Index',
                                 'action' => 'facet',
+                            ],
+                        ],
+                    ],
+                    'ocrsearch' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/ocrsearch',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller',
+                                'controller' => 'OcrSearch',
+                                'action' => 'search',
+                            ],
+                        ],
+                    ],
+                    'ocrcollections' => [
+                        'type' => 'Segment',
+                        'options' => [
+                            'route' => '/ocrsearch/itemsets.json',
+                            'defaults' => [
+                                '__NAMESPACE__' => 'Search\Controller',
+                                'controller' => 'OcrSearch',
+                                'action' => 'itemsets',
                             ],
                         ],
                     ],
@@ -367,6 +390,7 @@ return [
             'showSavedQueries' => View\Helper\ShowSavedQueries::class,
             'formFields' => Form\View\Helper\FormFields::class,
             'searchCurrentPage' => View\Helper\SearchCurrentPage::class,
+            'ocrSearchQueryToString' => View\Helper\OcrSearchQueryToString::class,
         ],
         'delegators' => [
             'Laminas\Form\View\Helper\FormElement' => [
