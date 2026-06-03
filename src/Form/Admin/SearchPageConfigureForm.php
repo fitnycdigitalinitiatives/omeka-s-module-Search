@@ -67,6 +67,15 @@ class SearchPageConfigureForm extends Form implements TranslatorAwareInterface
         ]);
 
         $this->add([
+            'name' => 'ocr_search',
+            'type' => 'Checkbox',
+            'options' => [
+                'label' => $translator->translate('Enable OCR Search'),
+                'info' => $translator->translate('Uses ocrsearch route for full-text search across the sites items.'),
+            ],
+        ]);
+
+        $this->add([
             'name' => 'save_queries',
             'type' => 'Checkbox',
             'options' => [
